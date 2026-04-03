@@ -1,0 +1,23 @@
+# Environment & secrets
+.env
+.env.local
+.env.*.local
+serviceAccountKey.json
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# Node
+node_modules/
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.vscode/settings.json
+*.suo
+*.user
