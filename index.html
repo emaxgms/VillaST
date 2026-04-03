@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VillaST — San Teodoro, Sardegna</title>
+  
+  <!-- Fonts: Cormorant Garamond & Jost -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+  
+  <!-- AOS CSS for scroll animations -->
+  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
+  
+  <!-- Flatpickr CSS for date pickers -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+  
+  <!-- Custom Styles -->
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="lang-it">
+
+  <!-- Navigation -->
+  <nav id="navbar">
+    <div class="nav-container">
+      <div class="logo">
+        <span class="logo__monogram">VS</span>
+        <span class="logo__wordmark">VillaST</span>
+      </div>
+      
+      <div class="nav-links">
+        <a href="#amenities" class="nav-link"><span class="it">La Villa</span><span class="en">The Villa</span></a>
+        <a href="#gallery" class="nav-link"><span class="it">Galleria</span><span class="en">Gallery</span></a>
+        <a href="#location" class="nav-link"><span class="it">Posizione</span><span class="en">Location</span></a>
+        <a href="#pricing" class="nav-link"><span class="it">Tariffe</span><span class="en">Rates</span></a>
+        <a href="#reservation" class="nav-link"><span class="it">Prenota</span><span class="en">Book</span></a>
+      </div>
+
+      <div class="nav-actions">
+        <button class="lang-toggle">IT | EN</button>
+        <button class="nav-toggle" aria-label="Toggle Menu">
+          <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="1.5" fill="none" class="hamburger-icon">
+            <line x1="3" y1="12" x2="21" y2="12"></line>
+            <line x1="3" y1="6" x2="21" y2="6"></line>
+            <line x1="3" y1="18" x2="21" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Mobile Menu Overlay -->
+  <div id="mobile-menu">
+    <div class="mobile-menu-inner">
+      <a href="#amenities" class="mobile-link"><span class="it">La Villa</span><span class="en">The Villa</span></a>
+      <a href="#gallery" class="mobile-link"><span class="it">Galleria</span><span class="en">Gallery</span></a>
+      <a href="#location" class="mobile-link"><span class="it">Posizione</span><span class="en">Location</span></a>
+      <a href="#pricing" class="mobile-link"><span class="it">Tariffe</span><span class="en">Rates</span></a>
+      <a href="#reservation" class="mobile-link"><span class="it">Prenota</span><span class="en">Book</span></a>
+    </div>
+  </div>
+
+  <!-- Hero Section -->
+  <section id="hero-section" class="hero">
+    <div class="hero__overlay"></div>
+    <div class="hero__content" data-aos="fade-up" data-aos-duration="1200">
+      <h1 class="hero__title">
+        <span class="it">Benvenuti in Paradiso</span>
+        <span class="en">Welcome to Paradise</span>
+      </h1>
+      <p class="hero__subtitle">San Teodoro, Sardegna</p>
+      <div class="hero__ctas">
+        <a href="#amenities" class="btn btn--primary it">Scopri la Villa</a>
+        <a href="#amenities" class="btn btn--primary en">Discover the Villa</a>
+        <a href="#reservation" class="btn btn--outline">
+          <span class="it">Prenota Ora</span><span class="en">Book Now</span>
+        </a>
+      </div>
+    </div>
+    <div class="scroll-indicator">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M12 5v14M19 12l-7 7-7-7"/>
+      </svg>
+    </div>
+  </section>
+
+  <!-- Stat Counter Bar -->
+  <div class="stat-bar" data-aos="fade-up" data-aos-offset="-50">
+    <div class="container stat-bar__inner">
+      <div class="stat-item">
+        <span class="stat-value">8</span>
+        <span class="stat-label it">Ospiti max</span><span class="stat-label en">Guests max</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value">3</span>
+        <span class="stat-label it">Camere</span><span class="stat-label en">Bedrooms</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-value">200m</span>
+        <span class="stat-label it">Dal mare</span><span class="stat-label en">From sea</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-icon">✨</span>
+        <span class="stat-label it">Piscina privata</span><span class="stat-label en">Private pool</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Amenities Section -->
+  <section id="amenities" class="section section--light">
+    <div class="container">
+      <div class="section-header" data-aos="fade-up">
+        <h2 class="section__title"><span class="it">La Villa</span><span class="en">The Villa</span></h2>
+        <p class="section__subtitle"><span class="it">Comfort e lusso in ogni dettaglio</span><span class="en">Comfort and luxury in every detail</span></p>
+      </div>
+      <div class="amenities-grid">
+        <div class="amenity-card" data-aos="fade-up" data-aos-delay="0">
+          <div class="amenity-icon">🏊‍♂️</div>
+          <h3><span class="it">Piscina Privata</span><span class="en">Private Pool</span></h3>
+          <p><span class="it">Acqua salata e zona solarium</span><span class="en">Saltwater with solarium area</span></p>
+        </div>
+        <div class="amenity-card" data-aos="fade-up" data-aos-delay="100">
+          <div class="amenity-icon">🛛️</div>
+          <h3><span class="it">3 Camere da Letto</span><span class="en">3 Bedrooms</span></h3>
+          <p><span class="it">Lenzuola di pregio e materassi top</span><span class="en">Premium linens and top mattresses</span></p>
+        </div>
+        <div class="amenity-card" data-aos="fade-up" data-aos-delay="200">
+          <div class="amenity-icon">🍳</div>
+          <h3><span class="it">Cucina Attrezzata</span><span class="en">Full Kitchen</span></h3>
+          <p><span class="it">Elettrodomestici moderni e cantinetta vini</span><span class="en">Modern appliances and wine cooler</span></p>
+        </div>
+        <div class="amenity-card" data-aos="fade-up" data-aos-delay="300">
+          <div class="amenity-icon">📦</div>
+          <h3><span class="it">WiFi Veloce</span><span class="en">Fast Wi-Fi</span></h3>
+          <p><span class="it">Connessione fibra in tutta la villa</span><span class="en">Fiber connection throughout</span></p>
+        </div>
+        <div class="amenity-card" data-aos="fade-up" data-aos-delay="0">
+          <div class="amenity-icon">❄️</div>
+          <h3><span class="it">Aria Condizionata</span><span class="en">Air Conditioning</span></h3>
+          <p><span class="it">Controllo autonomo in ogni stanza</span><span class="en">Independent control per room</span></p>
+        </div>
+        <div class="amenity-card" data-aos="fade-up" data-aos-delay="100">
+          <div class="amenity-icon">🌿</div>
+          <h3><span class="it">Giardino Privato</span><span class="en">Private Garden</span></h3>
+          <p><span class="it">Prato curato e macchia mediterranea</span><span class="en">Manicured lawn and Mediterranean scrub</span></p>
+        </div>
+        <div class="amenity-card" data-aos="fade-up" data-aos-delay="200">
+          <div class="amenity-icon">🚗</div>
+          <h3><span class="it">Parcheggio</span><span class="en">Parking</span></h3>
+          <p><span class="it">2 posti auto coperti e custoditi</span><span class="en">2 covered and secure spaces</span></p>
+        </div>
+        <div class="amenity-card" data-aos="fade-up" data-aos-delay="300">
+          <div class="amenity-icon">🌊</div>
+          <h3><span class="it">A 200m dal Mare</span><span class="en">200m from Sea</span></h3>
+          <p><span class="it">Accesso pedonale alle spiagge</span><span class="en">Pedestrian access to beaches</span></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Gallery Section -->
+  <section id="gallery" class="section section--dark">
+    <div class="container">
+      <div class="section-header" data-aos="fade-up">
+        <h2 class="section__title"><span class="it">Galleria</span><span class="en">Gallery</span></h2>
+      </div>
+      <div class="gallery__grid">
+        <div class="gallery__item" data-aos="zoom-in" data-aos-delay="0"><img src="https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&fit=crop&q=80&w=1600" loading="lazy" alt="Villa Exterior"></div>
+        <div class="gallery__item" data-aos="zoom-in" data-aos-delay="100"><img src="https://images.unsplash.com/photo-1600596542815-ffad4c1539a9?auto=format&fit=crop&q=80&w=800" loading="lazy" alt="Villa Interior"></div>
+        <div class="gallery__item" data-aos="zoom-in" data-aos-delay="200"><img src="https://images.unsplash.com/photo-1584622650111-993a426fbf0a?auto=format&fit=crop&q=80&w=800" loading="lazy" alt="PoolArea"></div>
+        <div class="gallery__item" data-aos="zoom-in" data-aos-delay="300"><img src="https://images.unsplash.com/photo-1613977257363-707ba9348227?auto=format&fit=crop&q=80&w=800" loading="lazy" alt="Bedroom"></div>
+        <div class="gallery__item" data-aos="zoom-in" data-aos-delay="400"><img src="https://images.unsplash.com/photo-1590073242678-70ee3fc28e8e?auto=format&fit=crop&q=80&w=800" loading="lazy" alt="Terrace"></div>
+        <div class="gallery__item" data-aos="zoom-in" data-aos-delay="500"><img src="https://images.unsplash.com/photo-1588880331179-bc9b93a8cb65?auto=format&fit=crop&q=80&w=800" loading="lazy" alt="Kitchen"></div>
+        <div class="gallery__item" data-aos="zoom-in" data-aos-delay="600"><img src="https://images.unsplash.com/photo-1621293954908-907159247fc8?auto=format&fit=crop&q=80&w=800" loading="lazy" alt="Bathroom"></div>
+        <div class="gallery__item" data-aos="zoom-in" data-aos-delay="700"><img src="https://images.unsplash.com/photo-1563298723-dcfebaa392e3?auto=format&fit=crop&q=80&w=800" loading="lazy" alt="Living Room"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Location Section -->
+  <section id="location" class="section section--light">
+    <div class="container location-container">
+      <div class="location-content" data-aos="fade-right">
+        <h2 class="section__title"><span class="it">Posizione</span><span class="en">Location</span></h2>
+        <p class="section__subtitle" style="text-align: left;"><span class="it">San Teodoro, Sardegna Nord-Est</span><span class="en">San Teodoro, North-East Sardinia</span></p>
+        <ul class="location-list">
+          <li><svg class="location-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg><span class="it">200m dalla spiaggia La Cinta</span><span class="en">200m from La Cinta beach</span></li>
+          <li><svg class="location-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg><span class="it">30min da Olbia (OLB) airport</span><span class="en">30min from Olbia (OLB) airport</span></li>
+          <li><svg class="location-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg><span class="it">5min dal centro di San Teodoro</span><span class="en">5min from San Teodoro center</span></li>
+        </ul>
+      </div>
+      <div class="location-map" data-aos="fade-left">
+        <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3110.123456789!2d9.7745!3d40.7682!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x12d854b2c4d4c5ff%3A0x0!2sSan+Teodoro%2C+Sardinia!5e0!3m2!1sen!2sit!4v1680000000000!5m2!1sen!2sit" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+      </div>
+    </div>
+  </section>
+
+  <!-- Pricing Section -->
+  <section id="pricing" class="section section--dark">
+    <div class="container">
+      <div class="section-header" data-aos="fade-up">
+        <h2 class="section__title"><span class="it">Tariffe</span><span class="en">Rates</span></h2>
+        <p class="section__subtitle"><span class="it">Incluso nel prezzo: biancheria, pulizie finali, Wi-Fi, consumi</span><span class="en">Included: linens, final cleaning, Wi-Fi, utilities</span></p>
+      </div>
+      <div class="pricing-grid">
+        <div class="pricing-card" data-aos="fade-up" data-aos-delay="0">
+          <h3><span class="it">Bassa Stagione</span><span class="en">Low Season</span></h3>
+          <p class="pricing-season"><span class="it">Ottobre - Aprile</span><span class="en">October - April</span></p>
+          <div class="pricing-price"><span class="currency">€</span><span class="amount">150</span><span class="period">/notte</span></div>
+          <p class="pricing-min"><span class="it">min. 2 notti</span><span class="en">min. 2 nights</span></p>
+        </div>
+        <div class="pricing-card pricing-card--highlight" data-aos="fade-up" data-aos-delay="100">
+          <div class="pricing-badge"><span class="it">Più Richiesta</span><span class="en">Most Popular</span></div>
+          <h3><span class="it">Media Stagione</span><span class="en">Mid Season</span></h3>
+          <p class="pricing-season"><span class="it">Maggio-Giugno, Settembre</span><span class="en">May-June, September</span></p>
+          <div class="pricing-price"><span class="currency">€</span><span class="amount">220</span><span class="period">/notte</span></div>
+          <p class="pricing-min"><span class="it">min. 3 notti</span><span class="en">min. 3 nights</span></p>
+        </div>
+        <div class="pricing-card" data-aos="fade-up" data-aos-delay="200">
+          <h3><span class="it">Alta Stagione</span><span class="en">High Season</span></h3>
+          <p class="pricing-season"><span class="it">Luglio - Agosto</span><span class="en">July - August</span></p>
+          <div class="pricing-price"><span class="currency">€</span><span class="amount">350</span><span class="period">/notte</span></div>
+          <p class="pricing-min"><span class="it">min. 7 notti</span><span class="en">min. 7 nights</span></p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Reviews Section -->
+  <section id="reviews" class="section section--light">
+    <div class="container">
+      <div class="section-header" data-aos="fade-up">
+        <h2 class="section__title"><span class="it">Recensioni</span><span class="en">Reviews</span></h2>
+      </div>
+      <div class="reviews-carousel">
+        <div class="review-card" data-aos="fade-up" data-aos-delay="0"><div class="review-quote">&ldquo;</div><div class="review-stars">★★★★★</div><p class="review-text">&ldquo;Una villa meravigliosa, ci siamo sentiti come a casa. La piscina è fantastica e il mare è a due passi. Torneremo sicuramente!&rdquo;</p><p class="review-author">Maria G. &mdash; Luglio 2024</p></div>
+        <div class="review-card" data-aos="fade-up" data-aos-delay="100"><div class="review-quote">&ldquo;</div><div class="review-stars">★★★★★</div><p class="review-text">&ldquo;Perfect villa for a family holiday. Clean, well-equipped, great location. The owner was very responsive.&rdquo;</p><p class="review-author">Thomas K. &mdash; Agosto 2024</p></div>
+        <div class="review-card" data-aos="fade-up" data-aos-delay="200"><div class="review-quote">&ldquo;</div><div class="review-stars">★★★★★</div><p class="review-text">&ldquo;Semplicemente perfetta. La mattina ci si sveglia con il profumo del mirto e il suono delle cicale. Posto incantevole.&rdquo;</p><p class="review-author">Claudia R. &mdash; Settembre 2024</p></div>
+        <div class="review-card" data-aos="fade-up" data-aos-delay="300"><div class="review-quote">&ldquo;</div><div class="review-stars">★★★★★</div><p class="review-text">&ldquo;Villa exceptionnelle, très bien équipée. La plage est à 2 minutes à pied. Nous reviendrons l&apos;année prochaine.&rdquo;</p><p class="review-author">Jean-Luc B. &mdash; Giugno 2024</p></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Reservation Section -->
+  <section id="reservation" class="section reservation-section">
+    <div class="container">
+      <div class="section-header" data-aos="fade-up">
+        <h2 class="section__title"><span class="it">Prenota la Tua Vacanza</span><span class="en">Book Your Stay</span></h2>
+      </div>
+      <div class="reservation-wrapper" data-aos="zoom-in" data-aos-delay="100">
+        <form id="reservation-form">
+          <div class="form-grid">
+            <div class="form-group"><label for="guest-name"><span class="it">Nome e Cognome</span><span class="en">Full Name</span></label><input id="guest-name" type="text" required maxlength="100" placeholder="Mario Rossi"></div>
+            <div class="form-group"><label for="guest-email">Email</label><input id="guest-email" type="email" required maxlength="200" placeholder="mario@example.com"></div>
+            <div class="form-group"><label for="guest-phone"><span class="it">Telefono</span><span class="en">Phone</span></label><input id="guest-phone" type="tel" required maxlength="20" placeholder="+39 ..."></div>
+            <div class="form-group"><label for="guest-count"><span class="it">Ospiti</span><span class="en">Guests</span></label><select id="guest-count" required><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
+            <div class="form-group"><label for="checkin-date">Check-in</label><input id="checkin-date" type="text" placeholder="Data arrivo / Arrival date" readonly required></div>
+            <div class="form-group"><label for="checkout-date">Check-out</label><input id="checkout-date" type="text" placeholder="Data partenza / Departure date" readonly required></div>
+          </div>
+          <div id="availability-loading" style="display:none"><span class="spinner"></span> Caricamento disponibilità...</div>
+          <button type="submit" class="btn btn--primary btn--full submit-btn"><span class="it">Richiedi Prenotazione</span><span class="en">Request Booking</span></button>
+        </form>
+        <div id="form-message"></div>
+        <p class="reservation-note"><span class="it">Riceverai conferma via email e/o WhatsApp entro 24 ore.</span><span class="en">You will receive confirmation via email and/or WhatsApp within 24 hours.</span></p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="container footer-grid">
+      <div class="footer-col">
+        <h3 class="footer-logo">VillaST</h3>
+        <p class="footer-tagline"><span class="it">Il tuo rifugio esclusivo in Sardegna.</span><span class="en">Your exclusive retreat in Sardinia.</span></p>
+        <p class="footer-contact"><br>Via Example 42, San Teodoro (SS) 08029<br><a href="mailto:villaST@example.com">villaST@example.com</a><br><a href="tel:+39XXXXXXXXXX">+39 XXX XXX XXXX</a></p>
+      </div>
+      <div class="footer-col footer-col--center">
+        <h4><span class="it">Contattaci Subito</span><span class="en">Contact Us Now</span></h4>
+        <a href="https://wa.me/393XXXXXXXXX?text=Ciao!%20Vorrei%20informazioni%20sulla%20villa" target="_blank" class="btn btn--whatsapp">WhatsApp</a>
+      </div>
+      <div class="footer-col footer-col--right">
+        <h4>Info</h4>
+        <p>&copy; 2025 VillaST</p>
+        <p>P.IVA XXXXXXXXXXX</p>
+      </div>
+    </div>
+    <div class="footer-bottom"><div class="container"><hr class="footer-divider"><p class="footer-mini"><span class="it">Sito realizzato con ❤️ in Sardegna</span><span class="en">Made with ❤️ in Sardinia</span></p></div></div>
+  </footer>
+
+  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script type="module" src="js/reservations.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>
