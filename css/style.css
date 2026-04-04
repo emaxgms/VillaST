@@ -1056,3 +1056,10 @@ img {
     grid-template-columns: 1fr;
   }
 }
+
+.calendar-range-error {
+  color: #c0392b;
+  font-size: 0.85rem;
+  margin-top: 0.35rem;
+  margin-bottom: 0;
+}

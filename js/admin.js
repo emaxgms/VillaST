@@ -4,7 +4,7 @@
  */
 
 import { db, auth } from './firebase-config.js';
-import { loadBookedDates, initAdminCalendar, formatDateISO, saveAvailability } from './calendar.js';
+import { loadBookedDates, loadBookedDatesWithMeta, initAdminCalendar, formatDateISO, saveAvailability } from './calendar.js';
 import {
   signInWithEmailAndPassword,
   signOut,
@@ -26,6 +26,8 @@ let unsubscribeReservations = null;
 let adminCalendarInstance = null;
 let originalBookedDates = new Set();
 let currentAdminSelectedDates = [];
+let saveAvailabilityListenerAttached = false;
+let bookedDatesMeta = new Map();
 
 function getDatesInRange(checkIn, checkOut) {
   const dates = [];
@@ -152,10 +154,13 @@ async function updateReservationStatus(id, status) {
       const bookedDates = await loadBookedDates(db);
       const hasConflict = dates.some(d => bookedDates.has(d));
       if (hasConflict) {
-        const shouldOverride = confirm('Alcune date risultano gia bloccate. Vuoi confermare comunque la prenotazione?');
-        if (!shouldOverride) return;
+        showAdminMessage(
+          'Alcune date risultano già bloccate. Impossibile confermare questa prenotazione.',
+          'error'
+        );
+        return;
       }
-      await Promise.all(dates.map(d => setDoc(doc(db, 'availability', d), { type: 'blocked' })));
+      await Promise.all(dates.map(d => setDoc(doc(db, 'availability', d), { type: 'blocked', reservationId: id })));
     }
 
     if (status === 'rejected' && oldStatus === 'confirmed') {
@@ -214,20 +219,82 @@ function stopReservationsListener() {
   if (unsubscribeReservations) { unsubscribeReservations(); unsubscribeReservations = null; }
 }
 
+function attachDayTooltips(calendarEl) {
+  calendarEl.querySelectorAll('.flatpickr-day:not(.prevMonthDay):not(.nextMonthDay)').forEach(dayEl => {
+    dayEl.addEventListener('mouseenter', onDayMouseenter);
+    dayEl.addEventListener('mouseleave', onDayMouseleave);
+  });
+}
+
+function onDayMouseleave(e) {
+  const existing = e.currentTarget.querySelector('.day-tooltip');
+  if (existing) existing.remove();
+}
+
+async function onDayMouseenter(e) {
+  const dayEl = e.currentTarget;
+  if (dayEl.classList.contains('flatpickr-disabled')) return;
+
+  const ariaLabel = dayEl.getAttribute('aria-label');
+  if (!ariaLabel) return;
+
+  const parsed = new Date(ariaLabel);
+  if (isNaN(parsed.getTime())) return;
+  const dateStr = formatDateISO(parsed);
+
+  const meta = bookedDatesMeta.get(dateStr);
+  if (!meta) return;
+
+  let tooltip = document.createElement('div');
+  tooltip.className = 'day-tooltip';
+  tooltip.textContent = '...';
+  dayEl.style.position = 'relative';
+  dayEl.appendChild(tooltip);
+
+  if (meta.reservationId) {
+    try {
+      const resSnap = await getDoc(doc(db, 'reservations', meta.reservationId));
+      if (!dayEl.querySelector('.day-tooltip')) return;
+      if (resSnap.exists()) {
+        tooltip.textContent = resSnap.data().name || 'Prenotazione';
+      } else {
+        tooltip.textContent = 'Prenotazione non trovata';
+      }
+    } catch {
+      if (dayEl.querySelector('.day-tooltip')) tooltip.textContent = 'Errore';
+    }
+  } else {
+    tooltip.textContent = 'Bloccata manualmente';
+  }
+}
+
 async function initAdminCalendarSection() {
   const calendarEl = document.getElementById('admin-calendar');
   if (!calendarEl) return;
+  currentAdminSelectedDates = [];
 
-  try { originalBookedDates = await loadBookedDates(db); }
-  catch (err) { console.error('Failed to load booked dates:', err); originalBookedDates = new Set(); }
+  try {
+    bookedDatesMeta = await loadBookedDatesWithMeta(db);
+    originalBookedDates = new Set(bookedDatesMeta.keys());
+  }
+  catch (err) {
+    console.error('Failed to load booked dates:', err);
+    bookedDatesMeta = new Map();
+    originalBookedDates = new Set();
+  }
 
   adminCalendarInstance = initAdminCalendar(calendarEl, originalBookedDates, (selectedDates) => {
     currentAdminSelectedDates = selectedDates;
+  }, {
+    onMonthChange: () => { attachDayTooltips(calendarEl); },
+    onYearChange: () => { attachDayTooltips(calendarEl); }
   });
+  attachDayTooltips(calendarEl);
   currentAdminSelectedDates = Array.from(originalBookedDates).map(d => new Date(d + 'T00:00:00'));
 
   const saveBtn = document.getElementById('save-availability-btn');
-  if (saveBtn) {
+  if (saveBtn && !saveAvailabilityListenerAttached) {
+    saveAvailabilityListenerAttached = true;
     saveBtn.addEventListener('click', async () => {
       saveBtn.disabled = true;
       saveBtn.textContent = 'Salvataggio...';
@@ -263,7 +330,13 @@ function initPanelSwitching() {
         if (!el) return;
         el.style.display = name === panelName ? '' : 'none';
       });
-      if (panelName === 'calendar' && !adminCalendarInstance) initAdminCalendarSection();
+      if (panelName === 'calendar') {
+        if (adminCalendarInstance) {
+          adminCalendarInstance.destroy();
+          adminCalendarInstance = null;
+        }
+        initAdminCalendarSection();
+      }
     });
   });
 }

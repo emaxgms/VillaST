@@ -255,7 +255,10 @@
             <div class="form-group"><label for="guest-email">Email</label><input id="guest-email" type="email" required maxlength="200" placeholder="mario@example.com"></div>
             <div class="form-group"><label for="guest-phone"><span class="it">Telefono</span><span class="en">Phone</span></label><input id="guest-phone" type="tel" required maxlength="20" placeholder="+39 ..."></div>
             <div class="form-group"><label for="guest-count"><span class="it">Ospiti</span><span class="en">Guests</span></label><select id="guest-count" required><option value="1">1</option><option value="2" selected>2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
-            <div class="form-group"><label for="checkin-date">Check-in / Check-out</label><input id="checkin-date" type="text" placeholder="Seleziona il periodo / Select stay dates" readonly required></div>
+            <div class="form-group"><label for="checkin-date">Check-in / Check-out</label><input id="checkin-date" type="text" placeholder="Seleziona il periodo / Select stay dates" readonly required><p id="calendar-range-error" class="calendar-range-error" style="display:none">
+  <span class="it">Il periodo selezionato contiene date non disponibili.</span>
+  <span class="en" style="display:none">The selected period contains unavailable dates.</span>
+</p></div>
             <input id="checkout-date" type="hidden">
           </div>
           <div id="availability-loading" style="display:none"><span class="spinner"></span> Caricamento disponibilità...</div>

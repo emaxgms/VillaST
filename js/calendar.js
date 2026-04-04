@@ -41,6 +41,18 @@ export async function loadBookedDates(db) {
   return blocked;
 }
 
+export async function loadBookedDatesWithMeta(db) {
+  const snap = await getDocs(collection(db, 'availability'));
+  const meta = new Map();
+  snap.forEach(docSnap => {
+    const data = docSnap.data();
+    if (data.type === 'blocked') {
+      meta.set(docSnap.id, { type: 'blocked', reservationId: data.reservationId || null });
+    }
+  });
+  return meta;
+}
+
 /**
  * Initialize the guest-facing check-in/check-out date pickers
  * Uses Flatpickr (loaded globally on page via CDN)
@@ -50,6 +62,7 @@ export async function loadBookedDates(db) {
  */
 export function initGuestCalendar(checkInEl, checkOutEl, bookedDates) {
   const blockedArray = Array.from(bookedDates);
+  const errorEl = document.getElementById('calendar-range-error');
 
   const syncRangeValues = (selectedDates) => {
     if (selectedDates.length >= 1) {
@@ -57,7 +70,6 @@ export function initGuestCalendar(checkInEl, checkOutEl, bookedDates) {
     } else {
       checkInEl.value = '';
     }
-
     if (selectedDates.length === 2) {
       checkOutEl.value = formatDateISO(selectedDates[1]);
     } else {
@@ -65,17 +77,41 @@ export function initGuestCalendar(checkInEl, checkOutEl, bookedDates) {
     }
   };
 
-  const rangeInstance = flatpickr(checkInEl, {
+  const rangeHasBlockedDate = (start, end) => {
+    const current = new Date(start.getTime());
+    const endTime = end.getTime();
+    while (current.getTime() <= endTime) {
+      if (bookedDates.has(formatDateISO(current))) return true;
+      current.setDate(current.getDate() + 1);
+    }
+    return false;
+  };
+
+  let isResolvingConflict = false;
+
+  let rangeInstance;
+  rangeInstance = flatpickr(checkInEl, {
     mode: 'range',
     dateFormat: 'Y-m-d',
     minDate: 'today',
     disable: blockedArray,
     allowInput: false,
+    closeOnSelect: false,
     locale: { firstDayOfWeek: 1 },
-    onReady: (selectedDates) => {
-      syncRangeValues(selectedDates);
-    },
+    onReady: (selectedDates) => { syncRangeValues(selectedDates); },
     onChange: (selectedDates) => {
+      if (isResolvingConflict) return;
+      if (selectedDates.length === 2) {
+        if (rangeHasBlockedDate(selectedDates[0], selectedDates[1])) {
+          isResolvingConflict = true;
+          rangeInstance.setDate([selectedDates[0]], false);
+          isResolvingConflict = false;
+          if (errorEl) errorEl.style.display = '';
+          syncRangeValues([selectedDates[0]]);
+          return;
+        }
+      }
+      if (errorEl) errorEl.style.display = 'none';
       syncRangeValues(selectedDates);
     },
     onClose: (selectedDates) => {
@@ -91,9 +127,10 @@ export function initGuestCalendar(checkInEl, checkOutEl, bookedDates) {
  * @param {HTMLElement} el — container element for inline calendar
  * @param {Set<string>} bookedDates — initial blocked dates
  * @param {function(Date[]): void} onChange — called when selection changes
+ * @param {object} extraOptions - additional Flatpickr options
  * @returns {object} Flatpickr instance
  */
-export function initAdminCalendar(el, bookedDates, onChange) {
+export function initAdminCalendar(el, bookedDates, onChange, extraOptions = {}) {
   const preselected = Array.from(bookedDates);
 
   return flatpickr(el, {
@@ -106,7 +143,8 @@ export function initAdminCalendar(el, bookedDates, onChange) {
       if (typeof onChange === 'function') {
         onChange(selectedDates);
       }
-    }
+    },
+    ...extraOptions
   });
 }
 
