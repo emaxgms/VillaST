@@ -32,7 +32,7 @@ function getDatesInRange(checkIn, checkOut) {
   if (!checkIn || !checkOut) return dates;
   const current = new Date(checkIn + 'T00:00:00');
   const end = new Date(checkOut + 'T00:00:00');
-  while (current < end) {
+  while (current <= end) {
     dates.push(formatDateISO(current));
     current.setDate(current.getDate() + 1);
   }

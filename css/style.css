@@ -863,9 +863,18 @@ img {
   border: none !important;
   font-family: var(--font-body) !important;
 }
-.flatpickr-day.selected {
+.flatpickr-day.inRange {
+  background: color-mix(in srgb, var(--azure) 28%, transparent) !important;
+  border-color: color-mix(in srgb, var(--azure) 28%, transparent) !important;
+  color: var(--white) !important;
+}
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange {
   background: var(--terra) !important;
   border-color: var(--terra) !important;
+  color: var(--white) !important;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--terra) 35%, var(--white));
 }
 
 /* ------------------------------------------------------------
