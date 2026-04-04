@@ -50,6 +50,7 @@ export async function loadBookedDates(db) {
  */
 export function initGuestCalendar(checkInEl, checkOutEl, bookedDates) {
   const blockedArray = Array.from(bookedDates);
+  const errorEl = document.getElementById('calendar-range-error');
 
   const syncRangeValues = (selectedDates) => {
     if (selectedDates.length >= 1) {
@@ -57,7 +58,6 @@ export function initGuestCalendar(checkInEl, checkOutEl, bookedDates) {
     } else {
       checkInEl.value = '';
     }
-
     if (selectedDates.length === 2) {
       checkOutEl.value = formatDateISO(selectedDates[1]);
     } else {
@@ -65,17 +65,41 @@ export function initGuestCalendar(checkInEl, checkOutEl, bookedDates) {
     }
   };
 
-  const rangeInstance = flatpickr(checkInEl, {
+  const rangeHasBlockedDate = (start, end) => {
+    const current = new Date(start.getTime());
+    const endTime = end.getTime();
+    while (current.getTime() <= endTime) {
+      if (bookedDates.has(formatDateISO(current))) return true;
+      current.setDate(current.getDate() + 1);
+    }
+    return false;
+  };
+
+  let isResolvingConflict = false;
+
+  let rangeInstance;
+  rangeInstance = flatpickr(checkInEl, {
     mode: 'range',
     dateFormat: 'Y-m-d',
     minDate: 'today',
     disable: blockedArray,
     allowInput: false,
+    closeOnSelect: false,
     locale: { firstDayOfWeek: 1 },
-    onReady: (selectedDates) => {
-      syncRangeValues(selectedDates);
-    },
+    onReady: (selectedDates) => { syncRangeValues(selectedDates); },
     onChange: (selectedDates) => {
+      if (isResolvingConflict) return;
+      if (selectedDates.length === 2) {
+        if (rangeHasBlockedDate(selectedDates[0], selectedDates[1])) {
+          isResolvingConflict = true;
+          rangeInstance.setDate([selectedDates[0]], false);
+          isResolvingConflict = false;
+          if (errorEl) errorEl.style.display = '';
+          syncRangeValues([selectedDates[0]]);
+          return;
+        }
+      }
+      if (errorEl) errorEl.style.display = 'none';
       syncRangeValues(selectedDates);
     },
     onClose: (selectedDates) => {
