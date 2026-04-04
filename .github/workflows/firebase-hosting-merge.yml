@@ -8,9 +8,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: FirebaseExtended/action-hosting-deploy@v0
+      - name: Deploy to Firebase Hosting
+        uses: FirebaseExtended/action-hosting-deploy@v0
         with:
           repoToken: ${{ secrets.GITHUB_TOKEN }}
           firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VILLA_SERENITA_SAN_TEODORO }}
           channelId: live
           projectId: villa-serenita-san-teodoro
+      - name: Deploy Firestore rules and indexes
+        run: npx -y firebase-tools@latest deploy --only firestore:rules,firestore:indexes --project villa-serenita-san-teodoro --token "$FIREBASE_TOKEN" --non-interactive
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
