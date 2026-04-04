@@ -66,7 +66,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (!checkIn) { showMessage(msgEl, '<p>Seleziona la data di arrivo.</p>', 'error'); return; }
     if (!checkOut) { showMessage(msgEl, '<p>Seleziona la data di partenza.</p>', 'error'); return; }
     if (checkOut <= checkIn) { showMessage(msgEl, '<p>La partenza deve essere dopo l arrivo.</p>', 'error'); return; }
-    if (dateRangeHasConflict(checkIn, checkOut, bookedDates)) {
+
+    let freshBookedDates;
+    try {
+      freshBookedDates = await loadBookedDates(db);
+    } catch (err) {
+      console.error('Availability refresh error:', err);
+      showMessage(msgEl, '<p>Errore nel controllo disponibilita. Riprova tra qualche istante.</p>', 'error');
+      return;
+    }
+
+    if (dateRangeHasConflict(checkIn, checkOut, freshBookedDates)) {
       showMessage(msgEl, '<p>Date non disponibili. Seleziona date alternative.</p>', 'error');
       return;
     }
