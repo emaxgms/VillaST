@@ -51,41 +51,39 @@ export async function loadBookedDates(db) {
 export function initGuestCalendar(checkInEl, checkOutEl, bookedDates) {
   const blockedArray = Array.from(bookedDates);
 
-  let checkOutInstance = null;
+  const syncRangeValues = (selectedDates) => {
+    if (selectedDates.length >= 1) {
+      checkInEl.value = formatDateISO(selectedDates[0]);
+    } else {
+      checkInEl.value = '';
+    }
 
-  const checkInInstance = flatpickr(checkInEl, {
-    mode: 'single',
+    if (selectedDates.length === 2) {
+      checkOutEl.value = formatDateISO(selectedDates[1]);
+    } else {
+      checkOutEl.value = '';
+    }
+  };
+
+  const rangeInstance = flatpickr(checkInEl, {
+    mode: 'range',
     dateFormat: 'Y-m-d',
-    altInput: true,
-    altFormat: 'd/m/Y',
     minDate: 'today',
     disable: blockedArray,
+    allowInput: false,
     locale: { firstDayOfWeek: 1 },
+    onReady: (selectedDates) => {
+      syncRangeValues(selectedDates);
+    },
     onChange: (selectedDates) => {
-      if (selectedDates.length > 0 && checkOutInstance) {
-        const nextDay = new Date(selectedDates[0]);
-        nextDay.setDate(nextDay.getDate() + 1);
-        checkOutInstance.set('minDate', nextDay);
-        // Clear checkout if it's now before the new minDate
-        const current = checkOutInstance.selectedDates[0];
-        if (current && current <= selectedDates[0]) {
-          checkOutInstance.clear();
-        }
-      }
+      syncRangeValues(selectedDates);
+    },
+    onClose: (selectedDates) => {
+      syncRangeValues(selectedDates);
     }
   });
 
-  checkOutInstance = flatpickr(checkOutEl, {
-    mode: 'single',
-    dateFormat: 'Y-m-d',
-    altInput: true,
-    altFormat: 'd/m/Y',
-    minDate: 'today',
-    disable: blockedArray,
-    locale: { firstDayOfWeek: 1 }
-  });
-
-  return { checkIn: checkInInstance, checkOut: checkOutInstance };
+  return { checkIn: rangeInstance, checkOut: null };
 }
 
 /**
