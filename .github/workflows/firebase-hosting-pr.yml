@@ -1,0 +1,63 @@
+name: Firebase Hosting PR Preview
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+  issues: write
+  pull-requests: write
+
+jobs:
+  preview:
+    if: github.event.action != 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Deploy preview channel
+        run: |
+          npx -y firebase-tools@latest hosting:channel:deploy pr-${{ github.event.pull_request.number }} \
+            --project villa-serenita-san-teodoro \
+            --token "$FIREBASE_TOKEN" \
+            --expires 7d \
+            --json > /tmp/channel-output.json
+
+          PREVIEW_URL=$(python3 -c "import json; d=json.load(open('/tmp/channel-output.json')); print(next(iter(d.get('result', {}).get('channels', {}).values()), {}).get('url', ''))")
+          if [ -z "$PREVIEW_URL" ]; then
+            PREVIEW_URL="Preview deployed. Check Firebase Hosting channels in console."
+          fi
+          echo "PREVIEW_URL=$PREVIEW_URL" >> "$GITHUB_ENV"
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+
+      - name: Comment preview URL
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const url = process.env.PREVIEW_URL;
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: `🔥 **Firebase Preview Deployed!**\n\n📱 Preview URL: ${url}\n\n_This preview will expire in 7 days._`
+            });
+
+  cleanup:
+    if: github.event.action == 'closed'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Delete preview channel
+        run: |
+          npx -y firebase-tools@latest hosting:channel:delete pr-${{ github.event.pull_request.number }} \
+            --project villa-serenita-san-teodoro \
+            --token "$FIREBASE_TOKEN" \
+            --force || true
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
