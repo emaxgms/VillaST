@@ -8,8 +8,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: FirebaseExtended/action-hosting-deploy@v0
-        with:
-          repoToken: ${{ secrets.GITHUB_TOKEN }}
-          firebaseServiceAccount: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_VILLA_SERENITA_SAN_TEODORO }}
-          projectId: villa-serenita-san-teodoro
+      - name: Deploy preview to Firebase Hosting
+        run: npx -y firebase-tools@latest hosting:channel:deploy pr-${{ github.event.number }} --project villa-serenita-san-teodoro --token "$FIREBASE_TOKEN" --non-interactive
+        env:
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
