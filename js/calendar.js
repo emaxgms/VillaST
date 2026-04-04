@@ -126,7 +126,7 @@ export function dateRangeHasConflict(checkIn, checkOut, bookedDates) {
   const start = new Date(checkIn + 'T00:00:00');
   const end = new Date(checkOut + 'T00:00:00');
   const current = new Date(start);
-  while (current < end) {
+  while (current <= end) {
     if (bookedDates.has(formatDateISO(current))) return true;
     current.setDate(current.getDate() + 1);
   }
