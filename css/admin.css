@@ -371,7 +371,19 @@ input, select {
   color: var(--success);
 }
 
+.admin-msg--success {
+  background: rgba(52, 211, 153, 0.1);
+  border: 1px solid var(--success);
+  color: var(--success);
+}
+
 .admin-msg.error {
+  background: rgba(248, 113, 113, 0.1);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+}
+
+.admin-msg--error {
   background: rgba(248, 113, 113, 0.1);
   border: 1px solid var(--danger);
   color: var(--danger);

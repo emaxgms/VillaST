@@ -153,8 +153,11 @@ async function updateReservationStatus(id, status) {
       const bookedDates = await loadBookedDates(db);
       const hasConflict = dates.some(d => bookedDates.has(d));
       if (hasConflict) {
-        const shouldOverride = confirm('Alcune date risultano gia bloccate. Vuoi confermare comunque la prenotazione?');
-        if (!shouldOverride) return;
+        showAdminMessage(
+          'Alcune date risultano già bloccate. Impossibile confermare questa prenotazione.',
+          'error'
+        );
+        return;
       }
       await Promise.all(dates.map(d => setDoc(doc(db, 'availability', d), { type: 'blocked' })));
     }
