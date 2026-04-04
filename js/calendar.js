@@ -41,6 +41,18 @@ export async function loadBookedDates(db) {
   return blocked;
 }
 
+export async function loadBookedDatesWithMeta(db) {
+  const snap = await getDocs(collection(db, 'availability'));
+  const meta = new Map();
+  snap.forEach(docSnap => {
+    const data = docSnap.data();
+    if (data.type === 'blocked') {
+      meta.set(docSnap.id, { type: 'blocked', reservationId: data.reservationId || null });
+    }
+  });
+  return meta;
+}
+
 /**
  * Initialize the guest-facing check-in/check-out date pickers
  * Uses Flatpickr (loaded globally on page via CDN)
@@ -115,9 +127,10 @@ export function initGuestCalendar(checkInEl, checkOutEl, bookedDates) {
  * @param {HTMLElement} el — container element for inline calendar
  * @param {Set<string>} bookedDates — initial blocked dates
  * @param {function(Date[]): void} onChange — called when selection changes
+ * @param {object} extraOptions - additional Flatpickr options
  * @returns {object} Flatpickr instance
  */
-export function initAdminCalendar(el, bookedDates, onChange) {
+export function initAdminCalendar(el, bookedDates, onChange, extraOptions = {}) {
   const preselected = Array.from(bookedDates);
 
   return flatpickr(el, {
@@ -130,7 +143,8 @@ export function initAdminCalendar(el, bookedDates, onChange) {
       if (typeof onChange === 'function') {
         onChange(selectedDates);
       }
-    }
+    },
+    ...extraOptions
   });
 }
 

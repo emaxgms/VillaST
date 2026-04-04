@@ -686,6 +686,7 @@ span.flatpickr-weekday {
   font-weight: 500;
 }
 .flatpickr-day {
+  position: relative;
   color: var(--text) !important;
   border-radius: var(--radius) !important;
   border: 1px solid transparent !important;
@@ -765,4 +766,22 @@ span.flatpickr-weekday {
   .action-btns {
     flex-direction: column;
   }
+}
+
+/* Issue #12 - Day tooltip styles */
+.day-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a1a1a;
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #f0f0f0;
+  font-size: 0.72rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 9999;
+  font-family: 'Jost', sans-serif;
 }
