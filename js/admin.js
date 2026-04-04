@@ -13,6 +13,8 @@ import {
 import {
   collection,
   onSnapshot,
+  getDoc,
+  setDoc,
   updateDoc,
   deleteDoc,
   doc,
@@ -24,6 +26,18 @@ let unsubscribeReservations = null;
 let adminCalendarInstance = null;
 let originalBookedDates = new Set();
 let currentAdminSelectedDates = [];
+
+function getDatesInRange(checkIn, checkOut) {
+  const dates = [];
+  if (!checkIn || !checkOut) return dates;
+  const current = new Date(checkIn + 'T00:00:00');
+  const end = new Date(checkOut + 'T00:00:00');
+  while (current < end) {
+    dates.push(formatDateISO(current));
+    current.setDate(current.getDate() + 1);
+  }
+  return dates;
+}
 
 function showEl(el) { if (el) el.style.display = ''; }
 function hideEl(el) { if (el) el.style.display = 'none'; }
@@ -120,7 +134,35 @@ function renderReservations(docs, filterStatus = '') {
 
 async function updateReservationStatus(id, status) {
   try {
-    await updateDoc(doc(db, 'reservations', id), { status });
+    const reservationRef = doc(db, 'reservations', id);
+    const reservationSnap = await getDoc(reservationRef);
+
+    if (!reservationSnap.exists()) {
+      showAdminMessage('Prenotazione non trovata.', 'error');
+      return;
+    }
+
+    const reservationData = reservationSnap.data();
+    const checkIn = reservationData.checkIn;
+    const checkOut = reservationData.checkOut;
+    const oldStatus = reservationData.status;
+    const dates = getDatesInRange(checkIn, checkOut);
+
+    if (status === 'confirmed') {
+      const bookedDates = await loadBookedDates(db);
+      const hasConflict = dates.some(d => bookedDates.has(d));
+      if (hasConflict) {
+        const shouldOverride = confirm('Alcune date risultano gia bloccate. Vuoi confermare comunque la prenotazione?');
+        if (!shouldOverride) return;
+      }
+      await Promise.all(dates.map(d => setDoc(doc(db, 'availability', d), { type: 'blocked' })));
+    }
+
+    if (status === 'rejected' && oldStatus === 'confirmed') {
+      await Promise.all(dates.map(d => deleteDoc(doc(db, 'availability', d))));
+    }
+
+    await updateDoc(reservationRef, { status });
     showAdminMessage(`Prenotazione ${status === 'confirmed' ? 'confermata' : 'rifiutata'}.`, 'success');
   } catch (err) {
     console.error('Update error:', err);
@@ -131,7 +173,18 @@ async function updateReservationStatus(id, status) {
 async function deleteReservation(id) {
   if (!confirm('Eliminare questa prenotazione?')) return;
   try {
-    await deleteDoc(doc(db, 'reservations', id));
+    const reservationRef = doc(db, 'reservations', id);
+    const reservationSnap = await getDoc(reservationRef);
+
+    if (reservationSnap.exists()) {
+      const reservation = reservationSnap.data();
+      if (reservation.status === 'confirmed') {
+        const dates = getDatesInRange(reservation.checkIn, reservation.checkOut);
+        await Promise.all(dates.map(d => deleteDoc(doc(db, 'availability', d))));
+      }
+    }
+
+    await deleteDoc(reservationRef);
     showAdminMessage('Prenotazione eliminata.', 'success');
   } catch (err) {
     console.error('Delete error:', err);
@@ -140,7 +193,7 @@ async function deleteReservation(id) {
 }
 
 function startReservationsListener() {
-  const q = query(collection(db, 'reservations'), orderBy('checkIn', 'asc'));
+  const q = query(collection(db, 'reservations'), orderBy('createdAt', 'desc'));
   const filterSelect = document.getElementById('filter-status');
   let allDocs = [];
 
