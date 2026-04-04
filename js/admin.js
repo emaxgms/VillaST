@@ -26,6 +26,7 @@ let unsubscribeReservations = null;
 let adminCalendarInstance = null;
 let originalBookedDates = new Set();
 let currentAdminSelectedDates = [];
+let saveAvailabilityListenerAttached = false;
 
 function getDatesInRange(checkIn, checkOut) {
   const dates = [];
@@ -217,6 +218,7 @@ function stopReservationsListener() {
 async function initAdminCalendarSection() {
   const calendarEl = document.getElementById('admin-calendar');
   if (!calendarEl) return;
+  currentAdminSelectedDates = [];
 
   try { originalBookedDates = await loadBookedDates(db); }
   catch (err) { console.error('Failed to load booked dates:', err); originalBookedDates = new Set(); }
@@ -227,7 +229,8 @@ async function initAdminCalendarSection() {
   currentAdminSelectedDates = Array.from(originalBookedDates).map(d => new Date(d + 'T00:00:00'));
 
   const saveBtn = document.getElementById('save-availability-btn');
-  if (saveBtn) {
+  if (saveBtn && !saveAvailabilityListenerAttached) {
+    saveAvailabilityListenerAttached = true;
     saveBtn.addEventListener('click', async () => {
       saveBtn.disabled = true;
       saveBtn.textContent = 'Salvataggio...';
@@ -263,7 +266,13 @@ function initPanelSwitching() {
         if (!el) return;
         el.style.display = name === panelName ? '' : 'none';
       });
-      if (panelName === 'calendar' && !adminCalendarInstance) initAdminCalendarSection();
+      if (panelName === 'calendar') {
+        if (adminCalendarInstance) {
+          adminCalendarInstance.destroy();
+          adminCalendarInstance = null;
+        }
+        initAdminCalendarSection();
+      }
     });
   });
 }
