@@ -50,11 +50,11 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Language Toggle Logic */
-.en { display: none; }
-.it { display: initial; }
+/* Language Toggle Logic — body prefix gives higher specificity than .btn */
+body .en { display: none; }
+body .it { display: revert; }
 
-body.lang-en .en { display: initial; }
+body.lang-en .en { display: revert; }
 body.lang-en .it { display: none; }
 body.lang-en .hero__title .en { display: inline-block; }
 
@@ -359,6 +359,7 @@ img {
 
 .hero {
   height: 100vh;
+  height: 100svh; /* small viewport height — prevents white bar on Chrome Android */
   position: relative;
   overflow: hidden;
   display: flex;
@@ -842,13 +843,13 @@ img {
   margin-top: 1rem;
   border-radius: 4px;
 }
-#form-message.success {
+#form-message.form-message--success {
   padding: 1rem;
   background-color: #E8F5E9;
   color: #2E7D32;
   border: 1px solid #C8E6C9;
 }
-#form-message.error {
+#form-message.form-message--error {
   padding: 1rem;
   background-color: #FFEBEE;
   color: #C62828;
