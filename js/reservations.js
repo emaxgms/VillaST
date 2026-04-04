@@ -5,7 +5,7 @@
 
 import { db } from './firebase-config.js';
 import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { loadBookedDates, initGuestCalendar, dateRangeHasConflict } from './calendar.js';
+import { loadBookedDates, initGuestCalendar, dateRangeHasConflict, formatDateISO } from './calendar.js';
 
 function sanitizeString(str) { return String(str).trim(); }
 function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
@@ -19,6 +19,25 @@ function showMessage(el, html, type) {
 }
 
 function hideMessage(el) { el.style.display = 'none'; el.innerHTML = ''; }
+
+function getSelectedDateValues(checkInEl, checkOutEl) {
+  let checkIn = sanitizeString(checkInEl.value);
+  let checkOut = sanitizeString(checkOutEl.value);
+
+  if (checkIn.includes(' to ')) {
+    const [start, end] = checkIn.split(' to ').map(v => sanitizeString(v));
+    if (start) checkIn = start;
+    if (!checkOut && end) checkOut = end;
+  }
+
+  const fp = checkInEl._flatpickr;
+  if (fp && Array.isArray(fp.selectedDates)) {
+    if (fp.selectedDates[0]) checkIn = formatDateISO(fp.selectedDates[0]);
+    if (fp.selectedDates[1]) checkOut = formatDateISO(fp.selectedDates[1]);
+  }
+
+  return { checkIn, checkOut };
+}
 
 document.addEventListener('DOMContentLoaded', async () => {
   const form = document.getElementById('reservation-form');
@@ -55,8 +74,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const email = sanitizeString(emailEl.value);
     const phone = sanitizeString(phoneEl.value);
     const guests = parseInt(countEl.value, 10);
-    const checkIn = sanitizeString(checkInEl.value);
-    const checkOut = sanitizeString(checkOutEl.value);
+    const { checkIn, checkOut } = getSelectedDateValues(checkInEl, checkOutEl);
 
     if (!name || name.length < 2) { showMessage(msgEl, '<p>Inserisci nome e cognome.</p>', 'error'); nameEl.focus(); return; }
     if (name.length > 100) { showMessage(msgEl, '<p>Nome troppo lungo (max 100 caratteri).</p>', 'error'); return; }
