@@ -14,7 +14,7 @@ permissions:
 
 jobs:
   preview:
-    if: github.event.action != 'closed'
+    if: github.event.action == 'opened'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
