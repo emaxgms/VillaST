@@ -10,9 +10,10 @@ service cloud.firestore {
     match /calendars/{document=**} {
       allow read, write: if request.auth != null;
     }
-
+    // anyone can read only admin can write
     match /availability/{document=**} {
-      allow read, write: if request.auth != null;
+      allow read: if true;
+      allow write: if request.auth != null;
     }
     
     // Public collections - anyone can read, only admins can write
