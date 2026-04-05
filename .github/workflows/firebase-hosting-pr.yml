@@ -27,10 +27,45 @@ jobs:
             --expires 7d \
             --json > /tmp/channel-output.json
 
-          PREVIEW_URL=$(python3 -c "import json; d=json.load(open('/tmp/channel-output.json')); print(next(iter(d.get('result', {}).get('channels', {}).values()), {}).get('url', ''))")
-          if [ -z "$PREVIEW_URL" ]; then
-            PREVIEW_URL="Preview deployed. Check Firebase Hosting channels in console."
+          echo "=== DEBUG: Checking file ==="
+          if [ ! -f /tmp/channel-output.json ]; then
+            echo "ERROR: File /tmp/channel-output.json NOT FOUND"
+            PREVIEW_URL="File not found"
+          else
+            echo "File found. Content:"
+            cat /tmp/channel-output.json | python3 -m json.tool 2>/dev/null || cat /tmp/channel-output.json
+            
+            echo ""
+            echo "=== DEBUG: Extracting URL ==="
+            PREVIEW_URL=$(python3 << 'PYTHON_EOF'
+          import json
+          import sys
+
+          try:
+              with open('/tmp/channel-output.json') as f:
+                  d = json.load(f)
+              
+              print(f"Full structure: {json.dumps(d, indent=2)}", file=sys.stderr)
+              
+              channels = d.get('result', {}).get('channels', {})
+              print(f"Channels found: {list(channels.keys())}", file=sys.stderr)
+              
+              if channels:
+                  first_channel = next(iter(channels.values()))
+                  print(f"First channel: {json.dumps(first_channel, indent=2)}", file=sys.stderr)
+                  url = first_channel.get('url', '')
+                  print(url)
+              else:
+                  print("No channels found", file=sys.stderr)
+                  
+          except Exception as e:
+              print(f"ERROR: {e}", file=sys.stderr)
+          PYTHON_EOF
+            )
           fi
+
+          echo "=== RESULT ==="
+          echo "PREVIEW_URL: $PREVIEW_URL"
           echo "PREVIEW_URL=$PREVIEW_URL" >> "$GITHUB_ENV"
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
