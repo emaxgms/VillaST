@@ -27,10 +27,35 @@ jobs:
             --expires 7d \
             --json > /tmp/channel-output.json
 
-          PREVIEW_URL=$(python3 -c "import json; d=json.load(open('/tmp/channel-output.json')); print(next(iter(d.get('result', {}).get('channels', {}).values()), {}).get('url', ''))")
-          if [ -z "$PREVIEW_URL" ]; then
-            PREVIEW_URL="Preview deployed. Check Firebase Hosting channels in console."
-          fi
+          PREVIEW_URL=$(python3 << 'PYTHON_EOF'
+          import json
+          import sys
+
+          try:
+              with open('/tmp/channel-output.json') as f:
+                  d = json.load(f)
+              
+              # Estrai il primo sito da result
+              result = d.get('result', {})
+              if result:
+                  first_site = next(iter(result.values()))
+                  url = first_site.get('url', '')
+                  print(url)
+              else:
+                  sys.exit(1)
+                  
+          except Exception as e:
+              print(f"ERROR: {e}", file=sys.stderr)
+              sys.exit(1)
+          PYTHON_EOF
+                    )
+
+                    if [ -z "$PREVIEW_URL" ]; then
+                      echo "❌ Failed to extract preview URL"
+                      exit 1
+                    fi
+
+          echo "✅ Preview URL extracted: $PREVIEW_URL"
           echo "PREVIEW_URL=$PREVIEW_URL" >> "$GITHUB_ENV"
         env:
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
