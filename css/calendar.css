@@ -1,0 +1,161 @@
+/**
+ * calendar.css — Semantic color system for Flatpickr calendar
+ * VillaST — San Teodoro, Sardegna
+ *
+ * Shared between guest (index.html) and admin (admin.html) calendars.
+ * Uses CSS custom properties for easy theming.
+ */
+
+/* ─── Design Tokens ──────────────────────────────────────────────────────── */
+:root {
+  --cal-available:    #2a3a2a;
+  --cal-reserved:     #c44;
+  --cal-selected:     #2a6f6f;
+  --cal-range:        #2a6f6f;
+  --cal-today:        #d4a13a;
+  --cal-hover:        rgba(42, 111, 111, 0.15);
+  --cal-legend-bg:    rgba(255, 255, 255, 0.08);
+  --cal-legend-border:rgba(255, 255, 255, 0.15);
+  --cal-legend-text:  rgba(255, 255, 255, 0.75);
+}
+
+/* ─── Reserved Days ──────────────────────────────────────────────────────── */
+.flatpickr-day.is-reserved {
+  background: var(--cal-reserved);
+  color: #fff;
+  text-decoration: line-through;
+  pointer-events: none;
+  opacity: 0.92;
+  border-color: var(--cal-reserved);
+  font-weight: 500;
+}
+
+.flatpickr-day.is-reserved:hover {
+  background: var(--cal-reserved);
+  border-color: var(--cal-reserved);
+  color: #fff;
+}
+
+/* ─── Available Days (default state) ─────────────────────────────────────── */
+.flatpickr-day.is-available {
+  color: var(--cal-available);
+}
+
+/* ─── Today ──────────────────────────────────────────────────────────────── */
+.flatpickr-day.is-today {
+  outline: 2px solid var(--cal-today);
+  outline-offset: -2px;
+  font-weight: 600;
+}
+
+/* ─── Selected Range ─────────────────────────────────────────────────────── */
+.flatpickr-day.startRange,
+.flatpickr-day.endRange {
+  background: var(--cal-selected);
+  border-color: var(--cal-selected);
+  color: #fff;
+  font-weight: 500;
+}
+
+.flatpickr-day.inRange {
+  background: rgba(42, 111, 111, 0.2);
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.flatpickr-day:hover:not(.flatpickr-disabled):not(.is-reserved) {
+  background: var(--cal-hover);
+  border-color: var(--cal-hover);
+}
+
+/* ─── Admin Calendar: Selected Multiple (orange highlight from dark theme) ── */
+.flatpickr-day.selected {
+  background: var(--cal-selected) !important;
+  border-color: var(--cal-selected) !important;
+  color: #fff !important;
+}
+
+/* ─── Disabled state (Flatpickr default: keep strike-through) ───────────── */
+.flatpickr-day.flatpickr-disabled.is-reserved {
+  text-decoration: line-through;
+}
+
+/* ─── Calendar Legend (guest widget) ─────────────────────────────────────── */
+.calendar-legend {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  align-items: center;
+  padding: 0.6rem 0.9rem;
+  margin-top: 0.75rem;
+  background: var(--cal-legend-bg);
+  border: 1px solid var(--cal-legend-border);
+  border-radius: 8px;
+  font-size: 0.82rem;
+  color: var(--cal-legend-text);
+  line-height: 1.4;
+}
+
+.calendar-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.calendar-legend__swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.calendar-legend__swatch--available {
+  background: var(--cal-available);
+  border: 1px solid rgba(255,255,255,0.15);
+}
+
+.calendar-legend__swatch--reserved {
+  background: var(--cal-reserved);
+}
+
+.calendar-legend__swatch--selected {
+  background: var(--cal-selected);
+}
+
+/* ─── Admin Calendar: legend dots ────────────────────────────────────────── */
+.calendar-legend .legend-dot--blocked {
+  background: var(--cal-reserved);
+}
+
+.calendar-legend .legend-dot--available {
+  background: var(--cal-available);
+}
+
+/* ─── Admin: day tooltip for reserved days ───────────────────────────────── */
+.day-tooltip {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(30, 30, 30, 0.95);
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 3px 7px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 10;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
+
+.day-tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: rgba(30, 30, 30, 0.95);
+}

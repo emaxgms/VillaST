@@ -4,7 +4,7 @@
  */
 
 import { db, auth } from './firebase-config.js';
-import { loadBookedDates, loadBookedDatesWithMeta, initAdminCalendar, formatDateISO, saveAvailability } from './calendar.js';
+import { loadBookedDates, loadBookedDatesWithMeta, initAdminCalendar, formatDateISO, saveAvailability, decorateDays } from './calendar.js';
 import {
   signInWithEmailAndPassword,
   signOut,
@@ -283,11 +283,14 @@ async function initAdminCalendarSection() {
     originalBookedDates = new Set();
   }
 
+  // Pass the full meta Map so decorateDays can show reservation tooltips on reserved days
   adminCalendarInstance = initAdminCalendar(calendarEl, originalBookedDates, (selectedDates) => {
     currentAdminSelectedDates = selectedDates;
   }, {
     onMonthChange: () => { attachDayTooltips(calendarEl); },
-    onYearChange: () => { attachDayTooltips(calendarEl); }
+    onYearChange: () => { attachDayTooltips(calendarEl); },
+    // Pass meta Map for decorateDays tooltip integration
+    _bookedDatesMeta: bookedDatesMeta
   });
   attachDayTooltips(calendarEl);
   currentAdminSelectedDates = Array.from(originalBookedDates).map(d => new Date(d + 'T00:00:00'));
