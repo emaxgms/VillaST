@@ -787,15 +787,19 @@ a {
 }
 
 .stat-bar__inner {
-  background-color: var(--color-white);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-lg);
+  box-shadow: 0 20px 48px rgba(26, 60, 94, 0.12);
   display: flex;
   justify-content: space-around;
   align-items: center;
   padding: var(--space-32) var(--space-24);
   max-width: 960px;
   margin: 0 auto;
+  position: relative;
 }
 
 .stat-item {
@@ -804,6 +808,23 @@ a {
   align-items: center;
   gap: var(--space-8);
   text-align: center;
+  flex: 1;
+  position: relative;
+  transition: transform var(--duration-normal) var(--ease-out);
+}
+
+.stat-item:hover {
+  transform: translateY(-2px);
+}
+
+.stat-item:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: 15%;
+  height: 70%;
+  width: 1px;
+  background: linear-gradient(to bottom, transparent, rgba(232, 213, 183, 0.4) 20%, rgba(232, 213, 183, 0.4) 80%, transparent);
 }
 
 .stat-value,
@@ -873,18 +894,21 @@ a {
   padding: var(--space-32) var(--space-24);
   border-radius: var(--radius-lg);
   text-align: center;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--neutral-200);
+  box-shadow: 0 8px 24px rgba(26, 60, 94, 0.03);
+  border: 1px solid rgba(232, 213, 183, 0.25);
   transition: transform var(--duration-normal) var(--ease-out),
               box-shadow var(--duration-normal) var(--ease-out),
-              border-color var(--duration-normal) var(--ease-out);
+              border-color var(--duration-normal) var(--ease-out),
+              background var(--duration-normal) var(--ease-out);
   position: relative;
+  overflow: hidden;
 }
 
 .amenity-card:hover {
   transform: translateY(-6px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--color-terra-pale);
+  box-shadow: 0 20px 40px rgba(26, 60, 94, 0.08);
+  border-color: var(--color-sand);
+  background: linear-gradient(135deg, var(--color-white) 0%, var(--color-sand-light) 100%);
 }
 
 .amenity-card::after {
@@ -893,10 +917,10 @@ a {
   top: 0;
   left: 50%;
   transform: translateX(-50%) scaleX(0);
-  width: 40px;
-  height: 2px;
+  width: 48px;
+  height: 3px;
   background-color: var(--color-terra);
-  border-radius: 1px;
+  border-radius: 1.5px;
   transition: transform var(--duration-normal) var(--ease-spring);
 }
 
@@ -914,13 +938,15 @@ a {
   color: var(--color-terra);
   background-color: var(--color-terra-pale);
   border-radius: var(--radius-md);
-  transition: background-color var(--duration-normal) var(--ease-out),
-              color var(--duration-normal) var(--ease-out);
+  transition: all var(--duration-normal) var(--ease-out);
+  border: 1px solid transparent;
 }
 
 .amenity-card:hover .amenity-icon {
   background-color: var(--color-terra);
   color: var(--color-white);
+  transform: scale(1.1);
+  box-shadow: 0 6px 12px rgba(193, 105, 79, 0.2);
 }
 
 .amenity-icon svg {
@@ -1057,16 +1083,16 @@ a {
   padding: var(--space-48) var(--space-32);
   border-radius: var(--radius-lg);
   text-align: center;
-  box-shadow: var(--shadow-md);
-  border: 1px solid var(--neutral-200);
-  transition: transform var(--duration-normal) var(--ease-out),
-              box-shadow var(--duration-normal) var(--ease-out);
+  box-shadow: 0 12px 32px rgba(26, 60, 94, 0.04);
+  border: 1px solid rgba(232, 213, 183, 0.35);
+  transition: all var(--duration-normal) var(--ease-out);
   position: relative;
 }
 
 .pricing-card:hover {
   transform: translateY(-8px);
-  box-shadow: var(--shadow-xl);
+  box-shadow: 0 24px 48px rgba(26, 60, 94, 0.1);
+  border-color: var(--color-sand);
 }
 
 .pricing-card h3 {
@@ -1397,6 +1423,10 @@ a {
   display: flex;
   flex-direction: column;
   gap: var(--space-8);
+}
+
+.form-group--full {
+  grid-column: span 2;
 }
 
 .form-group label {

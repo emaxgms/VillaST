@@ -3,6 +3,10 @@
 Sito web per villa vacanze con sistema di prenotazioni integrato.
 Static site with Firebase Firestore backend, hosted on Firebase Hosting.
 
+## About the property
+
+Rifugio Tavolara is a 2-bedroom apartment (sleeps 4) in the centre of San Teodoro, Sardinia. It features a private garden with outdoor furniture, a patio, a terrace, free private parking, air conditioning, and a kitchen equipped with a fridge, coffee machine, and kitchenware. Licensed as a short-term rental under CIN **IT090092C2000S4969**. The site is bilingual Italian/English and includes an integrated booking/reservation system with a Firebase backend.
+
 ## Stack
 
 - HTML5 + CSS3 + Vanilla JS (no build step)
@@ -59,6 +63,20 @@ npx live-server .
    - Name: `FIREBASE_SERVICE_ACCOUNT_VILLA_SERENITA_SAN_TEODORO`
    - Value: the downloaded JSON content
 3. Push to `main` → workflow deploys automatically
+
+## Content source of truth
+
+The canonical property listing is on booking.com: https://www.booking.com/hotel/it/rifugio-tavolara.it.html
+The marketing copy in `index.html` is the authoritative version for this site — it may diverge from the listing for layout/formatting reasons.
+
+## Useful commands
+
+There is no build step. For local work:
+
+```bash
+python3 -m http.server 8000          # static preview (no Firebase)
+node -c js/*.js                      # syntax-check JS files
+```
 
 ## Firestore Rules
 

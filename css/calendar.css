@@ -1,97 +1,205 @@
 /**
  * calendar.css — Semantic color system for Flatpickr calendar
- * VillaST — San Teodoro, Sardegna
+ * Rifugio Tavolara — San Teodoro, Sardegna
  *
  * Shared between guest (index.html) and admin (admin.html) calendars.
- * Uses CSS custom properties for easy theming.
+ * Custom light theme overrides for guest view and dark theme integration for admin.
  */
 
-/* ─── Design Tokens ──────────────────────────────────────────────────────── */
+/* ─── Design Tokens (Mediterranean Theme) ───────────────────────────────── */
 :root {
-  --cal-available:    #2a3a2a;
-  --cal-reserved:     #c44;
-  --cal-selected:     #2a6f6f;
-  --cal-range:        #2a6f6f;
-  --cal-today:        #d4a13a;
-  --cal-hover:        rgba(42, 111, 111, 0.15);
-  --cal-legend-bg:    rgba(255, 255, 255, 0.08);
-  --cal-legend-border:rgba(255, 255, 255, 0.15);
-  --cal-legend-text:  rgba(255, 255, 255, 0.75);
+  --cal-bg:           #FFFFFF;
+  --cal-text-main:    #1A3C5E; /* Deep Sea Blue */
+  --cal-text-muted:   #8A8A8A;
+  --cal-border:       #E8D5B7; /* Sand */
+  --cal-available:    #1A3C5E;
+  --cal-reserved-bg:  #F7F5F0;
+  --cal-reserved-fg:  #B2AFAB;
+  --cal-selected:     #C1694F; /* Terracotta */
+  --cal-range-bg:     #F2DED6; /* Pale Terracotta */
+  --cal-today:        #1A3C5E;
+  --cal-hover:        #F5ECE0; /* Light Sand */
+  --cal-legend-bg:    #FAF7F2; /* Cream */
+  --cal-legend-border:#E8D5B7;
+  --cal-legend-text:  #4A4A4A;
 }
 
-/* ─── Reserved Days ──────────────────────────────────────────────────────── */
-.flatpickr-day.is-reserved {
-  background: var(--cal-reserved);
-  color: #fff;
-  text-decoration: line-through;
-  pointer-events: none;
-  opacity: 0.92;
-  border-color: var(--cal-reserved);
-  font-weight: 500;
+/* ─── Guest Calendar Popup (Not Inline) Custom Overrides ────────────────── */
+.flatpickr-calendar:not(.inline) {
+  background: var(--cal-bg) !important;
+  border: 1px solid var(--cal-border) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 12px 40px rgba(26, 60, 94, 0.12) !important;
+  padding: 8px !important;
+  font-family: 'Jost', -apple-system, sans-serif !important;
 }
 
-.flatpickr-day.is-reserved:hover {
-  background: var(--cal-reserved);
-  border-color: var(--cal-reserved);
-  color: #fff;
+.flatpickr-calendar:not(.inline) .flatpickr-months {
+  margin-bottom: 6px;
 }
 
-/* ─── Available Days (default state) ─────────────────────────────────────── */
-.flatpickr-day.is-available {
-  color: var(--cal-available);
+.flatpickr-calendar:not(.inline) .flatpickr-months .flatpickr-month {
+  color: var(--cal-text-main) !important;
+  fill: var(--cal-text-main) !important;
 }
 
-/* ─── Today ──────────────────────────────────────────────────────────────── */
-.flatpickr-day.is-today {
-  outline: 2px solid var(--cal-today);
-  outline-offset: -2px;
+.flatpickr-calendar:not(.inline) .flatpickr-current-month {
+  font-family: 'Cormorant Garamond', Georgia, serif !important;
+  font-style: italic !important;
+  font-size: 1.25rem !important;
+  color: var(--cal-text-main) !important;
+}
+
+.flatpickr-calendar:not(.inline) .flatpickr-current-month .flatpickr-monthDropdown-months {
+  background: var(--cal-bg) !important;
+  color: var(--cal-text-main) !important;
   font-weight: 600;
 }
 
-/* ─── Selected Range ─────────────────────────────────────────────────────── */
-.flatpickr-day.startRange,
-.flatpickr-day.endRange {
-  background: var(--cal-selected);
-  border-color: var(--cal-selected);
-  color: #fff;
+.flatpickr-calendar:not(.inline) .flatpickr-current-month .numInputWrapper {
+  color: var(--cal-text-main) !important;
+}
+
+.flatpickr-calendar:not(.inline) span.flatpickr-weekday {
+  color: #2A5F8F !important; /* Sea light */
+  font-weight: 500 !important;
+  font-size: 0.8rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.flatpickr-calendar:not(.inline) .flatpickr-day {
+  color: var(--cal-text-main) !important;
+  border-radius: 8px !important;
   font-weight: 500;
+  transition: all 180ms cubic-bezier(0.16, 1, 0.3, 1) !important;
+  margin: 2px 0 !important;
+  height: 38px !important;
+  line-height: 36px !important;
+  max-width: 38px !important;
+  flex-basis: 38px !important;
 }
 
-.flatpickr-day.inRange {
-  background: rgba(42, 111, 111, 0.2);
-  border-color: transparent;
-  box-shadow: none;
+/* ─── Guest Calendar: Reserved / Blocked Days ───────────────────────────── */
+.flatpickr-calendar:not(.inline) .flatpickr-day.is-reserved {
+  background: repeating-linear-gradient(45deg, #FAF8F5, #FAF8F5 4px, #F0ECE4 4px, #F0ECE4 8px) !important;
+  color: var(--cal-reserved-fg) !important;
+  text-decoration: line-through !important;
+  text-decoration-color: rgba(193, 105, 79, 0.3) !important;
+  border-color: transparent !important;
+  pointer-events: none !important;
+  opacity: 0.8;
 }
 
-.flatpickr-day:hover:not(.flatpickr-disabled):not(.is-reserved) {
-  background: var(--cal-hover);
-  border-color: var(--cal-hover);
+/* ─── Guest Calendar: Available Days ────────────────────────────────────── */
+.flatpickr-calendar:not(.inline) .flatpickr-day.is-available {
+  color: var(--cal-available) !important;
 }
 
-/* ─── Admin Calendar: Selected Multiple (orange highlight from dark theme) ── */
-.flatpickr-day.selected {
+/* ─── Guest Calendar: Hover states ──────────────────────────────────────── */
+.flatpickr-calendar:not(.inline) .flatpickr-day:hover:not(.flatpickr-disabled):not(.is-reserved) {
+  background-color: var(--cal-hover) !important;
+  border-color: var(--cal-border) !important;
+  transform: scale(1.08);
+  color: var(--cal-text-main) !important;
+}
+
+/* ─── Guest Calendar: Today ─────────────────────────────────────────────── */
+.flatpickr-calendar:not(.inline) .flatpickr-day.is-today {
+  border: 1px solid var(--cal-text-main) !important;
+  background: transparent !important;
+}
+
+.flatpickr-calendar:not(.inline) .flatpickr-day.is-today::after {
+  content: '';
+  position: absolute;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: var(--cal-selected);
+}
+
+/* ─── Guest Calendar: Selected Range ────────────────────────────────────── */
+.flatpickr-calendar:not(.inline) .flatpickr-day.selected,
+.flatpickr-calendar:not(.inline) .flatpickr-day.startRange,
+.flatpickr-calendar:not(.inline) .flatpickr-day.endRange {
   background: var(--cal-selected) !important;
   border-color: var(--cal-selected) !important;
-  color: #fff !important;
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+  transform: scale(1.02);
 }
 
-/* ─── Disabled state (Flatpickr default: keep strike-through) ───────────── */
-.flatpickr-day.flatpickr-disabled.is-reserved {
-  text-decoration: line-through;
+.flatpickr-calendar:not(.inline) .flatpickr-day.inRange {
+  background: var(--cal-range-bg) !important;
+  border-color: transparent !important;
+  color: var(--cal-text-main) !important;
 }
 
-/* ─── Calendar Legend (guest widget) ─────────────────────────────────────── */
+.flatpickr-calendar:not(.inline) .flatpickr-day.flatpickr-disabled,
+.flatpickr-calendar:not(.inline) .flatpickr-day.flatpickr-disabled:hover {
+  color: #D4D4D4 !important;
+  background: transparent !important;
+  border-color: transparent !important;
+}
+
+
+/* ─── Admin Calendar (Inline Dark Theme Integration) ────────────────────── */
+
+/* Date currently selected in session or database (base selector) */
+#admin-calendar .flatpickr-day.selected {
+  background: var(--terra, #C1694F) !important;
+  border-color: var(--terra, #C1694F) !important;
+  color: #FFFFFF !important;
+  font-weight: 600 !important;
+  pointer-events: auto !important;
+}
+
+/* Day is reserved in database AND currently selected (still blocked) */
+#admin-calendar .flatpickr-day.is-reserved.selected {
+  background: repeating-linear-gradient(45deg, rgba(193, 105, 79, 0.15), rgba(193, 105, 79, 0.15) 4px, rgba(193, 105, 79, 0.3) 4px, rgba(193, 105, 79, 0.3) 8px) !important;
+  border: 1px solid var(--terra, #C1694F) !important;
+  color: #FFFFFF !important;
+  pointer-events: auto !important;
+}
+
+/* Day was reserved in database BUT admin clicked to unblock it (deselected) */
+#admin-calendar .flatpickr-day.is-reserved:not(.selected) {
+  background: var(--surface, #1A1D27) !important;
+  border-color: var(--border, #2E3347) !important;
+  color: var(--text-muted, #8B8FA8) !important;
+  text-decoration: none !important;
+  pointer-events: auto !important;
+  opacity: 0.6;
+}
+
+/* Available day */
+#admin-calendar .flatpickr-day.is-available:not(.selected) {
+  color: var(--text, #E8EAF0) !important;
+  background: var(--surface, #1A1D27) !important;
+  border-color: var(--border, #2E3347) !important;
+}
+
+#admin-calendar .flatpickr-day.is-today {
+  border: 1px solid var(--success, #34D399) !important;
+}
+
+
+/* ─── Legend & Widgets ─────────────────────────────────────────────────── */
 .calendar-legend {
   display: flex;
-  gap: 1rem;
+  gap: 1.25rem;
   flex-wrap: wrap;
   align-items: center;
-  padding: 0.6rem 0.9rem;
-  margin-top: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-top: 1rem;
   background: var(--cal-legend-bg);
   border: 1px solid var(--cal-legend-border);
   border-radius: 8px;
-  font-size: 0.82rem;
+  font-size: 0.85rem;
   color: var(--cal-legend-text);
   line-height: 1.4;
 }
@@ -99,7 +207,7 @@
 .calendar-legend__item {
   display: inline-flex;
   align-items: center;
-  gap: 0.35rem;
+  gap: 0.5rem;
   white-space: nowrap;
 }
 
@@ -112,42 +220,36 @@
 }
 
 .calendar-legend__swatch--available {
-  background: var(--cal-available);
-  border: 1px solid rgba(255,255,255,0.15);
+  background: var(--cal-bg);
+  border: 1px solid var(--cal-border);
 }
 
 .calendar-legend__swatch--reserved {
-  background: var(--cal-reserved);
+  background: repeating-linear-gradient(45deg, #FAF8F5, #FAF8F5 3px, #F0ECE4 3px, #F0ECE4 6px);
+  border: 1px solid #E3DFD8;
 }
 
 .calendar-legend__swatch--selected {
   background: var(--cal-selected);
 }
 
-/* ─── Admin Calendar: legend dots ────────────────────────────────────────── */
-.calendar-legend .legend-dot--blocked {
-  background: var(--cal-reserved);
-}
-
-.calendar-legend .legend-dot--available {
-  background: var(--cal-available);
-}
-
-/* ─── Admin: day tooltip for reserved days ───────────────────────────────── */
+/* Day tooltips for admin */
 .day-tooltip {
   position: absolute;
   bottom: calc(100% + 6px);
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(30, 30, 30, 0.95);
+  background: rgba(15, 17, 23, 0.95);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: #fff;
-  font-size: 0.7rem;
-  padding: 3px 7px;
+  font-size: 0.72rem;
+  padding: 4px 8px;
   border-radius: 4px;
   white-space: nowrap;
   pointer-events: none;
-  z-index: 10;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+  z-index: 9999;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  font-family: 'Jost', sans-serif;
 }
 
 .day-tooltip::after {
@@ -157,5 +259,5 @@
   left: 50%;
   transform: translateX(-50%);
   border: 5px solid transparent;
-  border-top-color: rgba(30, 30, 30, 0.95);
+  border-top-color: rgba(15, 17, 23, 0.95);
 }
