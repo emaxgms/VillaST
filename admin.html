@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Admin — VillaST</title>
+  <title>Admin — Rifugio Tavolara</title>
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Jost:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   
   <!-- Flatpickr Dark Theme -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
@@ -23,13 +23,13 @@
        ============================================== -->
   <div id="login-screen">
     <div class="login-card">
-      <div class="login-logo">VS</div>
-      <h1>VillaST</h1>
-      <p>Accesso Riservato</p>
+      <div class="login-logo">RT</div>
+      <h1>Rifugio Tavolara</h1>
+      <p>Accesso Riservato Amministratore</p>
       <form id="login-form">
         <div class="field-group">
           <label for="login-email">Email</label>
-          <input id="login-email" type="email" required placeholder="admin@example.com" autocomplete="username">
+          <input id="login-email" type="email" required placeholder="admin@rifugiotavolara.com" autocomplete="username">
         </div>
         <div class="field-group">
           <label for="login-password">Password</label>
@@ -49,8 +49,8 @@
     <!-- Sidebar -->
     <aside class="sidebar">
       <div class="sidebar-logo">
-        <span class="logo-monogram">VS</span>
-        <span class="logo-text">VillaST</span>
+        <span class="logo-monogram">RT</span>
+        <span class="logo-text">Rifugio Tavolara</span>
       </div>
       <nav class="sidebar-nav">
         <!-- Dashboard / Prenotazioni -->
@@ -95,7 +95,7 @@
     <!-- Main Content -->
     <main class="dashboard-main">
       <header class="dash-header">
-        <h1>Dashboard</h1>
+        <h1>Dashboard Amministratore</h1>
         <div class="dash-header-right">
           <span class="admin-badge">Admin</span>
         </div>
@@ -137,7 +137,6 @@
               </tr>
             </thead>
             <tbody id="reservations-tbody">
-              <!-- JS Array Example placeholder -->
               <tr class="empty-row">
                 <td colspan="6">Nessuna prenotazione trovata</td>
               </tr>
@@ -149,11 +148,11 @@
       <!-- Calendar Panel (hidden by default) -->
       <section id="calendar-panel" class="dash-panel" style="display:none">
         <div class="panel-header">
-          <h2>Gestione Disponibilità</h2>
+          <h2>Gestione Disponibilità e Calendario</h2>
         </div>
         <div class="calendar-layout">
           <div class="calendar-instructions">
-            <p>Clicca sulle date per bloccarle o sbloccarle. Le date selezionate (in arancio) saranno marcate come <strong>non disponibili</strong>.</p>
+            <p>Clicca sulle date per bloccarle o sbloccarle. Le date contrassegnate in <strong>arancione</strong> rappresentano blocchi manuali, mentre quelle in <strong>azzurro</strong> indicano prenotazioni confermate degli ospiti.</p>
             <!-- Calendar container -->
             <div id="admin-calendar"></div>
             <!-- Action -->
@@ -161,9 +160,10 @@
           </div>
           
           <div class="calendar-legend">
-            <h3>Legenda</h3>
-            <div class="legend-item"><span class="legend-dot legend-dot--blocked"></span> Data bloccata</div>
-            <div class="legend-item"><span class="legend-dot legend-dot--available"></span> Data disponibile</div>
+            <h3>Legenda Calendario</h3>
+            <div class="legend-item"><span class="legend-dot legend-dot--reserved"></span> Prenotazione Ospite</div>
+            <div class="legend-item"><span class="legend-dot legend-dot--blocked"></span> Blocco Manuale</div>
+            <div class="legend-item"><span class="legend-dot legend-dot--available"></span> Data Disponibile</div>
           </div>
         </div>
       </section>
