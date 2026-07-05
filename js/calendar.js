@@ -98,16 +98,17 @@ export function initGuestCalendar(checkInEl, checkOutEl, bookedDates) {
     allowInput: false,
     closeOnSelect: false,
     locale: { firstDayOfWeek: 1 },
+    disableMobile: true,
     onReady: (selectedDates) => { syncRangeValues(selectedDates); },
     onChange: (selectedDates) => {
       if (isResolvingConflict) return;
       if (selectedDates.length === 2) {
         if (rangeHasBlockedDate(selectedDates[0], selectedDates[1])) {
           isResolvingConflict = true;
-          rangeInstance.setDate([selectedDates[0]], false);
+          rangeInstance.setDate([selectedDates[1]], false);
           isResolvingConflict = false;
           if (errorEl) errorEl.style.display = '';
-          syncRangeValues([selectedDates[0]]);
+          syncRangeValues([selectedDates[1]]);
           return;
         }
       }
