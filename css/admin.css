@@ -645,14 +645,23 @@ input, select {
 .legend-dot {
   width: 12px;
   height: 12px;
-  border-radius: 3px;
+  border-radius: 4px;
 }
 .legend-dot--blocked {
   background: var(--terra);
+  box-shadow: 0 2px 6px rgba(193, 105, 79, 0.3);
 }
 .legend-dot--available {
-  background: var(--surface);
-  border: 1px solid var(--border);
+  background: rgba(52, 211, 153, 0.1);
+  border: 1.5px solid #34D399;
+}
+.legend-dot--mark-block {
+  background: rgba(193, 105, 79, 0.2);
+  border: 1.5px dashed var(--terra);
+}
+.legend-dot--mark-unblock {
+  background: rgba(248, 113, 113, 0.1);
+  border: 1.5px dashed var(--danger);
 }
 
 .btn-save {
