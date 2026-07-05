@@ -650,6 +650,9 @@ input, select {
 .legend-dot--blocked {
   background: var(--terra);
 }
+.legend-dot--reserved {
+  background: var(--azure);
+}
 .legend-dot--available {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -695,9 +698,14 @@ span.flatpickr-weekday {
   background: rgba(255,255,255,0.05) !important;
   border-color: var(--border) !important;
 }
-.flatpickr-day.selected,
-.flatpickr-day.startRange,
-.flatpickr-day.endRange {
+.flatpickr-day.selected.day-reserved-booking {
+  background: var(--azure) !important;
+  border-color: var(--azure) !important;
+  color: #fff !important;
+  font-weight: 600;
+}
+.flatpickr-day.selected:not(.day-reserved-booking),
+.flatpickr-day.selected.day-blocked-manual {
   background: var(--terra) !important;
   border-color: var(--terra) !important;
   color: #fff !important;

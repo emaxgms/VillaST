@@ -287,7 +287,18 @@ async function initAdminCalendarSection() {
     currentAdminSelectedDates = selectedDates;
   }, {
     onMonthChange: () => { attachDayTooltips(calendarEl); },
-    onYearChange: () => { attachDayTooltips(calendarEl); }
+    onYearChange: () => { attachDayTooltips(calendarEl); },
+    onDayCreate: (dObj, dStr, fp, dayElem) => {
+      const dateStr = formatDateISO(dayElem.dateObj);
+      const meta = bookedDatesMeta.get(dateStr);
+      if (meta) {
+        if (meta.reservationId) {
+          dayElem.classList.add('day-reserved-booking');
+        } else {
+          dayElem.classList.add('day-blocked-manual');
+        }
+      }
+    }
   });
   attachDayTooltips(calendarEl);
   currentAdminSelectedDates = Array.from(originalBookedDates).map(d => new Date(d + 'T00:00:00'));
