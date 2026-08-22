@@ -14,7 +14,7 @@
  */
 
 import { db, auth } from './firebase-config.js';
-import { loadBookedDates, loadBookedDatesWithMeta, initAdminCalendar, formatDateISO, getDatesInRange, groupContiguousDates } from './calendar.js';
+import { loadBookedDates, loadBookedDatesWithMeta, initAdminCalendar, decorateDays, formatDateISO, getDatesInRange, groupContiguousDates } from './calendar.js';
 import {
   signInWithEmailAndPassword,
   signOut,
@@ -378,15 +378,36 @@ async function initAdminCalendarSection() {
     bookedDatesMeta = new Map();
   }
 
+  // Enrich availability metadata with source/status from reservation docs
+  // so the calendar can color manual admin blocks differently from guest bookings.
+  const reservationById = new Map(allReservations.map(ds => [ds.id, ds.data()]));
+  bookedDatesMeta.forEach((meta, dateStr) => {
+    const res = meta.reservationId ? reservationById.get(meta.reservationId) : null;
+    if (res) {
+      meta.source = res.source || meta.source;
+      meta.status = res.status || meta.status;
+    }
+  });
+
   const occupied = new Set(bookedDatesMeta.keys());
 
   adminCalendarInstance = initAdminCalendar(calendarEl, occupied, (selectedDates) => {
     currentAdminSelectedDates = selectedDates;
   }, {
-    onMonthChange: () => attachDayTooltips(calendarEl),
-    onYearChange: () => attachDayTooltips(calendarEl),
+    // Flatpickr builds days in a detached fragment: onDayCreate fires before
+    // day elements exist in calendarContainer, so decorateDays there finds
+    // nothing. Decorate explicitly after render and on every month change.
+    onMonthChange: () => {
+      decorateDays(adminCalendarInstance, bookedDatesMeta, { showTooltips: true });
+      attachDayTooltips(calendarEl);
+    },
+    onYearChange: () => {
+      decorateDays(adminCalendarInstance, bookedDatesMeta, { showTooltips: true });
+      attachDayTooltips(calendarEl);
+    },
     _bookedDatesMeta: bookedDatesMeta
   });
+  decorateDays(adminCalendarInstance, bookedDatesMeta, { showTooltips: true });
   attachDayTooltips(calendarEl);
   currentAdminSelectedDates = Array.from(occupied).map(d => new Date(d + 'T00:00:00'));
 

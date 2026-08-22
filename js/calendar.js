@@ -72,7 +72,10 @@ export function decorateDays(fp, bookedDates, opts = {}) {
     const ariaLabel = dayEl.getAttribute('aria-label');
     if (!ariaLabel) return;
 
-    const parsed = new Date(ariaLabel + 'T00:00:00');
+    // Flatpickr's aria-label defaults to locale format "F j, Y" (e.g. "July 27, 2026").
+    // Appending 'T00:00:00' blindly yields "July 27, 2026T00:00:00" → Invalid Date,
+    // which skipped ALL decoration. Parse the label as-is (JS Date understands it).
+    const parsed = new Date(ariaLabel);
     if (isNaN(parsed.getTime())) return;
 
     const dateStr = formatDateISO(parsed);
@@ -89,6 +92,14 @@ export function decorateDays(fp, bookedDates, opts = {}) {
 
     if (isBlocked) {
       dayEl.classList.add('is-reserved');
+      if (bookedDates instanceof Map) {
+        const meta = bookedDates.get(dateStr);
+        if (meta && meta.source === 'admin' && meta.status === 'blocked') {
+          dayEl.classList.add('is-admin-blocked');
+        } else {
+          dayEl.classList.add('is-guest-confirmed');
+        }
+      }
     } else {
       dayEl.classList.add('is-available');
     }
@@ -97,10 +108,11 @@ export function decorateDays(fp, bookedDates, opts = {}) {
     if (opts.showTooltips && isBlocked && bookedDates instanceof Map) {
       const meta = bookedDates.get(dateStr);
       if (meta) {
+        const isManual = meta.source === 'admin' && meta.status === 'blocked';
         const resId = meta.reservationId;
-        dayEl.title = resId
-          ? `Bloccata — prenotazione #${resId.slice(0, 8)}`
-          : 'Bloccata manualmente';
+        dayEl.title = isManual
+          ? 'Bloccata manualmente'
+          : (resId ? `Bloccata — prenotazione #${resId.slice(0, 8)}` : 'Bloccata');
       }
     }
   });
