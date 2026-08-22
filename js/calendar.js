@@ -2,13 +2,14 @@
  * calendar.js — Shared availability calendar module
  * VillaST — San Teodoro, Sardegna
  *
- * Firestore Availability Schema:
- * Collection: "availability"
- * Document ID: "YYYY-MM-DD" (e.g., "2025-07-15")
- * Document data: { type: "blocked" }
- *
- * To block a date: set document "YYYY-MM-DD" with { type: "blocked" }
- * To unblock: delete the document
+ * Single source of truth: the `reservations` collection.
+ * The `availability` collection is a derived per-day occupancy index:
+ *   - doc id  : "YYYY-MM-DD"
+ *   - data    : { reservationId: <id of the occupying reservation> }
+ * The presence of an `availability` doc means that day is occupied.
+ * It is kept in sync with `reservations` by the admin flows (confirm,
+ * reject, delete, manual block) and is public-readable so the guest
+ * calendar can paint blocked days without exposing guest PII.
  */
 
 import { collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
@@ -26,29 +27,28 @@ export function formatDateISO(date) {
 }
 
 /**
- * Load all blocked dates from Firestore availability collection
+ * Load all occupied dates from Firestore `availability` collection.
+ * Any document in the collection represents a blocked day.
  * @param {import("firebase/firestore").Firestore} db
  * @returns {Promise<Set<string>>} Set of YYYY-MM-DD date strings
  */
 export async function loadBookedDates(db) {
   const snap = await getDocs(collection(db, 'availability'));
   const blocked = new Set();
-  snap.forEach(docSnap => {
-    if (docSnap.data().type === 'blocked') {
-      blocked.add(docSnap.id);
-    }
-  });
+  snap.forEach(docSnap => blocked.add(docSnap.id));
   return blocked;
 }
 
+/**
+ * Load occupied dates with reservationId metadata (for admin tooltips).
+ * @param {import("firebase/firestore").Firestore} db
+ * @returns {Promise<Map<string,object>>} Map of dateStr -> { reservationId }
+ */
 export async function loadBookedDatesWithMeta(db) {
   const snap = await getDocs(collection(db, 'availability'));
   const meta = new Map();
   snap.forEach(docSnap => {
-    const data = docSnap.data();
-    if (data.type === 'blocked') {
-      meta.set(docSnap.id, { type: 'blocked', reservationId: data.reservationId || null });
-    }
+    meta.set(docSnap.id, { reservationId: docSnap.data().reservationId || null });
   });
   return meta;
 }
@@ -72,7 +72,10 @@ export function decorateDays(fp, bookedDates, opts = {}) {
     const ariaLabel = dayEl.getAttribute('aria-label');
     if (!ariaLabel) return;
 
-    const parsed = new Date(ariaLabel + 'T00:00:00');
+    // Flatpickr's aria-label defaults to locale format "F j, Y" (e.g. "July 27, 2026").
+    // Appending 'T00:00:00' blindly yields "July 27, 2026T00:00:00" → Invalid Date,
+    // which skipped ALL decoration. Parse the label as-is (JS Date understands it).
+    const parsed = new Date(ariaLabel);
     if (isNaN(parsed.getTime())) return;
 
     const dateStr = formatDateISO(parsed);
@@ -89,6 +92,14 @@ export function decorateDays(fp, bookedDates, opts = {}) {
 
     if (isBlocked) {
       dayEl.classList.add('is-reserved');
+      if (bookedDates instanceof Map) {
+        const meta = bookedDates.get(dateStr);
+        if (meta && meta.source === 'admin' && meta.status === 'blocked') {
+          dayEl.classList.add('is-admin-blocked');
+        } else {
+          dayEl.classList.add('is-guest-confirmed');
+        }
+      }
     } else {
       dayEl.classList.add('is-available');
     }
@@ -97,10 +108,11 @@ export function decorateDays(fp, bookedDates, opts = {}) {
     if (opts.showTooltips && isBlocked && bookedDates instanceof Map) {
       const meta = bookedDates.get(dateStr);
       if (meta) {
+        const isManual = meta.source === 'admin' && meta.status === 'blocked';
         const resId = meta.reservationId;
-        dayEl.title = resId
-          ? `Bloccata — prenotazione #${resId.slice(0, 8)}`
-          : 'Bloccata manualmente';
+        dayEl.title = isManual
+          ? 'Bloccata manualmente'
+          : (resId ? `Bloccata — prenotazione #${resId.slice(0, 8)}` : 'Bloccata');
       }
     }
   });
@@ -133,7 +145,25 @@ export function createCalendarLegend(container) {
 }
 
 /**
- * Find the first blocked date strictly between start and end (exclusive).
+ * Check whether any day in the inclusive range [start, end] is blocked.
+ * Used for guest range validation (catches partial overlaps).
+ * @param {Date} start
+ * @param {Date} end
+ * @param {Set<string>} bookedDates
+ * @returns {boolean}
+ */
+export function rangeHasBlockedDate(start, end, bookedDates) {
+  const current = new Date(start.getTime());
+  const endTime = end.getTime();
+  while (current.getTime() <= endTime) {
+    if (bookedDates.has(formatDateISO(current))) return true;
+    current.setDate(current.getDate() + 1);
+  }
+  return false;
+}
+
+/**
+ * Find the first blocked date in the inclusive range [start, end].
  * Returns null if no blocked dates exist in the range.
  * @param {Date} start
  * @param {Date} end
@@ -142,9 +172,8 @@ export function createCalendarLegend(container) {
  */
 export function findFirstBlockedInRange(start, end, bookedDates) {
   const current = new Date(start.getTime());
-  current.setDate(current.getDate() + 1); // skip start itself
   const endTime = end.getTime();
-  while (current.getTime() < endTime) { // strict < so we skip end itself
+  while (current.getTime() <= endTime) {
     const iso = formatDateISO(current);
     if (bookedDates.has(iso)) return iso;
     current.setDate(current.getDate() + 1);
@@ -297,76 +326,27 @@ function createConflictModal() {
 }
 
 /**
- * Initialize the guest-facing check-in/check-out date pickers
- * Uses Flatpickr (loaded globally on page via CDN).
- * Two-step flow: pick start date → pick end date.
- * @param {HTMLElement} checkInEl
- * @param {HTMLElement} checkOutEl
+ * Initialize the guest-facing check-in/check-out date picker.
+ * Uses a single Flatpickr instance in `range` mode attached to the check-in
+ * input; the check-out value is written to the hidden check-out input.
+ * Blocked dates are disabled and any selected range that spans a blocked
+ * date (partial overlap) is rejected with the conflict modal.
+ *
+ * @param {HTMLElement} checkInEl — visible read-only text input
+ * @param {HTMLElement} checkOutEl — hidden input receiving the end date
  * @param {Set<string>} bookedDates — set of blocked YYYY-MM-DD strings
  */
 export function initGuestCalendar(checkInEl, checkOutEl, bookedDates) {
   const blockedArray = Array.from(bookedDates);
   const errorEl = document.getElementById('calendar-range-error');
-
-  // --- State machine ---
-  let state = 'pick_start'; // 'pick_start' | 'pick_end'
-  let selectedStart = null; // Date object
-
-  // --- Conflict modal (created once, reused) ---
   const modal = createConflictModal();
 
-  // --- Hint / aria-live ---
-  const hintEl = document.createElement('p');
-  hintEl.id = 'calendar-step-hint';
-  hintEl.className = 'calendar-step-hint';
-  hintEl.setAttribute('aria-live', 'polite');
-  hintEl.style.display = 'none';
-  checkInEl.parentNode.insertBefore(hintEl, errorEl);
-
-  // --- Reset button (inline next to input) ---
-  const resetBtn = document.createElement('button');
-  resetBtn.type = 'button';
-  resetBtn.className = 'calendar-reset-btn';
-  resetBtn.innerHTML = '<span class="it">&#10005; Reinserisci</span><span class="en">&#10005; Reset</span>';
-  resetBtn.title = 'Reset selection';
-  resetBtn.style.display = 'none';
-  checkInEl.parentNode.insertBefore(resetBtn, hintEl);
-
-  function showHint(textIT, textEN) {
-    const isEN = document.body.classList.contains('lang-en');
-    hintEl.textContent = isEN ? textEN : textIT;
-    hintEl.style.display = '';
+  function isEN() {
+    return document.body.classList.contains('lang-en');
   }
 
-  function hideHint() {
-    hintEl.style.display = 'none';
-  }
-
-  function commitDates(start, end) {
-    checkInEl.value = formatDateISO(start);
-    checkOutEl.value = formatDateISO(end);
-  }
-
-  function clearDates() {
-    checkInEl.value = '';
-    checkOutEl.value = '';
-    selectedStart = null;
-  }
-
-  function resetToStart() {
-    clearDates();
-    state = 'pick_start';
-    hideHint();
-    if (errorEl) errorEl.style.display = 'none';
-    resetBtn.style.display = 'none';
-  }
-
-  // Reset button handler
-  resetBtn.addEventListener('click', resetToStart);
-
-  // --- Flatpickr (single mode, state-driven) ---
   const fp = flatpickr(checkInEl, {
-    mode: 'single',
+    mode: 'range',
     dateFormat: 'Y-m-d',
     minDate: 'today',
     disable: blockedArray,
@@ -379,75 +359,47 @@ export function initGuestCalendar(checkInEl, checkOutEl, bookedDates) {
     },
 
     onChange: (selectedDates) => {
-      const date = selectedDates[0];
-      if (!date) return;
-
-      if (state === 'pick_start') {
-        selectedStart = date;
-        state = 'pick_end';
-        commitDates(selectedStart, null);
-        showHint('Ora seleziona la data di fine', 'Now select the end date');
-        resetBtn.style.display = '';
-        // Reopen calendar for end-date pick
-        fp.open();
-        fp.setDate(null, false);
-      }
-      // pick_end is handled in onClose (after calendar closes)
-    },
-
-    onClose: () => {
-      if (state !== 'pick_end') return;
-      // Get whatever date is currently selected
-      const selected = fp.selectedDates;
-      if (!selected || !selected[0] || !selectedStart) return;
-
-      const endDate = selected[0];
-      // Ignore if same as start
-      if (formatDateISO(endDate) === formatDateISO(selectedStart)) {
-        fp.setDate(null, false);
+      if (!selectedDates || selectedDates.length === 0) {
+        checkOutEl.value = '';
         return;
       }
 
-      if (rangeHasBlockedDate(selectedStart, endDate)) {
-        // Conflict — find first blocked date and show modal
-        const conflictDate = findFirstBlockedInRange(selectedStart, endDate, bookedDates);
-        const msgIT = conflictDate
-          ? `La data ${conflictDate} è già prenotata. Scegli una data di fine diversa.`
-          : 'Il periodo selezionato contiene date non disponibili.';
-        const msgEN = conflictDate
-          ? `The date ${conflictDate} is already reserved. Pick a different end date.`
-          : 'The selected period contains unavailable dates.';
-        const isEN = document.body.classList.contains('lang-en');
-        modal.open(isEN ? msgEN : msgIT, () => {
-          // "Reset dates" button in modal
-          resetToStart();
-        });
-        // Clear the end date but keep start, stay in pick_end
-        fp.setDate(null, false);
-        // Re-open calendar so user can immediately pick another end date
-        setTimeout(() => fp.open(), 100);
-      } else {
-        // Clean range — commit and reset
-        commitDates(selectedStart, endDate);
+      const start = selectedDates[0];
+      const end = selectedDates[1];
+
+      if (!end) {
+        // Only the start date has been picked so far.
+        checkOutEl.value = '';
         if (errorEl) errorEl.style.display = 'none';
-        hideHint();
-        state = 'pick_start';
-        selectedStart = null;
-        resetBtn.style.display = 'none';
-        fp.setDate(null, false);
+        return;
       }
+
+      // Full range picked — reject if any blocked date falls inside it.
+      if (rangeHasBlockedDate(start, end, bookedDates)) {
+        const conflictDate = findFirstBlockedInRange(start, end, bookedDates);
+        const msg = conflictDate
+          ? (isEN()
+              ? `The date ${conflictDate} is already reserved. Pick different dates.`
+              : `La data ${conflictDate} è già prenotata. Scegli date diverse.`)
+          : (isEN()
+              ? 'The selected period contains unavailable dates.'
+              : 'Il periodo selezionato contiene date non disponibili.');
+        modal.open(msg, () => {
+          fp.clear();
+          checkOutEl.value = '';
+          if (errorEl) errorEl.style.display = 'none';
+        });
+        // Keep nothing selected so the user can immediately pick again.
+        fp.clear();
+        return;
+      }
+
+      // Valid range — flatpickr already wrote "start to end" into checkInEl;
+      // persist the end date to the hidden check-out input for submission.
+      checkOutEl.value = formatDateISO(end);
+      if (errorEl) errorEl.style.display = 'none';
     }
   });
-
-  function rangeHasBlockedDate(start, end) {
-    const current = new Date(start.getTime());
-    const endTime = end.getTime();
-    while (current.getTime() <= endTime) {
-      if (bookedDates.has(formatDateISO(current))) return true;
-      current.setDate(current.getDate() + 1);
-    }
-    return false;
-  }
 
   // Append bilingual legend below the calendar
   const calendarWrapper = checkInEl.closest('.form-group') || checkInEl.parentElement;
@@ -490,9 +442,8 @@ export function initAdminCalendar(el, bookedDates, onChange, extraOptions = {}) 
 }
 
 /**
- * Check if any date in the requested range conflicts with blocked dates
- * NOTE: This is a UX-only check. Firestore rules do NOT enforce availability.
- * The admin must confirm/reject conflicting requests manually.
+ * Check if any date in the requested range conflicts with blocked dates.
+ * The range is inclusive of check-out (matches the per-day occupancy model).
  * @param {string} checkIn — YYYY-MM-DD
  * @param {string} checkOut — YYYY-MM-DD
  * @param {Set<string>} bookedDates
@@ -502,32 +453,53 @@ export function dateRangeHasConflict(checkIn, checkOut, bookedDates) {
   if (!checkIn || !checkOut) return false;
   const start = new Date(checkIn + 'T00:00:00');
   const end = new Date(checkOut + 'T00:00:00');
-  const current = new Date(start);
-  while (current <= end) {
-    if (bookedDates.has(formatDateISO(current))) return true;
-    current.setDate(current.getDate() + 1);
-  }
-  return false;
+  return rangeHasBlockedDate(start, end, bookedDates);
 }
 
 /**
- * Save the admin's blocked date selections to Firestore
- * Diffs the new selection against the original to minimize writes
- * @param {import("firebase/firestore").Firestore} db
- * @param {Set<string>} originalBlocked — set of previously blocked dates
- * @param {Date[]} newSelected — array of Date objects from Flatpickr
- * @returns {Promise<void>}
+ * Add (or subtract) days to a YYYY-MM-DD string, returning YYYY-MM-DD.
+ * @param {string} isoStr
+ * @param {number} n
+ * @returns {string}
  */
-export async function saveAvailability(db, originalBlocked, newSelected) {
-  const newBlockedSet = new Set(newSelected.map(formatDateISO));
+export function addDays(isoStr, n) {
+  const d = new Date(isoStr + 'T00:00:00');
+  d.setDate(d.getDate() + n);
+  return formatDateISO(d);
+}
 
-  const toAdd = [...newBlockedSet].filter(d => !originalBlocked.has(d));
-  const toRemove = [...originalBlocked].filter(d => !newBlockedSet.has(d));
+/**
+ * Expand an inclusive [checkIn, checkOut] range into its list of day strings.
+ * @param {string} checkIn — YYYY-MM-DD
+ * @param {string} checkOut — YYYY-MM-DD
+ * @returns {string[]}
+ */
+export function getDatesInRange(checkIn, checkOut) {
+  const dates = [];
+  if (!checkIn || !checkOut) return dates;
+  const current = new Date(checkIn + 'T00:00:00');
+  const end = new Date(checkOut + 'T00:00:00');
+  while (current <= end) {
+    dates.push(formatDateISO(current));
+    current.setDate(current.getDate() + 1);
+  }
+  return dates;
+}
 
-  const writes = [
-    ...toAdd.map(dateStr => setDoc(doc(db, 'availability', dateStr), { type: 'blocked' })),
-    ...toRemove.map(dateStr => deleteDoc(doc(db, 'availability', dateStr)))
-  ];
-
-  await Promise.all(writes);
+/**
+ * Group a set of dates into contiguous [checkIn, checkOut] ranges.
+ * @param {Set<string>|string[]} dateSet — YYYY-MM-DD strings
+ * @returns {{checkIn:string, checkOut:string}[]}
+ */
+export function groupContiguousDates(dateSet) {
+  const sorted = [...dateSet].sort();
+  const ranges = [];
+  let start = null, prev = null;
+  for (const d of sorted) {
+    if (start === null) { start = d; prev = d; continue; }
+    if (d === addDays(prev, 1)) { prev = d; }
+    else { ranges.push({ checkIn: start, checkOut: prev }); start = d; prev = d; }
+  }
+  if (start !== null) ranges.push({ checkIn: start, checkOut: prev });
+  return ranges;
 }

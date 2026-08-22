@@ -114,6 +114,7 @@
           <div class="panel-stats">
             <span class="stat-chip stat-chip--pending">0 In attesa</span>
             <span class="stat-chip stat-chip--confirmed">0 Confermate</span>
+            <span class="stat-chip stat-chip--blocked">0 Bloccate</span>
           </div>
         </div>
         
@@ -124,6 +125,7 @@
             <option value="pending">In attesa</option>
             <option value="confirmed">Confermate</option>
             <option value="rejected">Rifiutate</option>
+            <option value="blocked">Bloccate</option>
           </select>
         </div>
 
@@ -157,6 +159,7 @@
         <div class="calendar-layout">
           <div class="calendar-instructions">
             <p>Clicca sulle date per bloccarle o sbloccarle. Le date selezionate (in arancio) saranno marcate come <strong>non disponibili</strong>.</p>
+            <p>Le date occupate da prenotazioni <strong>confermate</strong> sono gestite dalla sezione Prenotazioni e non possono essere sbloccate qui. I blocchi manuali vengono salvati come voci in Prenotazioni (etichetta "Manuale") e possono essere eliminati da lì.</p>
             <!-- Calendar container -->
             <div id="admin-calendar"></div>
             <!-- Action -->
@@ -166,7 +169,8 @@
           <div class="calendar-legend">
             <h3>Legenda</h3>
             <div class="legend-item"><span class="legend-dot legend-dot--available"></span> Data disponibile</div>
-            <div class="legend-item"><span class="legend-dot legend-dot--blocked"></span> Data bloccata</div>
+            <div class="legend-item"><span class="legend-dot legend-dot--admin-blocked"></span> Blocco manuale admin</div>
+            <div class="legend-item"><span class="legend-dot legend-dot--guest-confirmed"></span> Prenotazione confermata</div>
             <div class="legend-item"><span class="legend-dot legend-dot--mark-block"></span> Selezionata per blocco</div>
             <div class="legend-item"><span class="legend-dot legend-dot--mark-unblock"></span> Selezionata per sblocco</div>
           </div>
