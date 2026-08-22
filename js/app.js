@@ -110,6 +110,11 @@ function applyLanguage(lang) {
     document.body.classList.remove('lang-en');
     if (langToggle) langToggle.textContent = 'IT | EN';
   }
+
+  // Localize placeholders (can't use .it/.en spans inside an input attribute)
+  document.querySelectorAll('[data-placeholder-it]').forEach(el => {
+    el.placeholder = lang === 'en' ? (el.dataset.placeholderEn || '') : (el.dataset.placeholderIt || '');
+  });
 }
 
 // Restore language preference

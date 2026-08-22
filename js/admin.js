@@ -1,10 +1,20 @@
 /**
  * admin.js - Admin dashboard logic
  * VillaST - San Teodoro, Sardegna
+ *
+ * Single source of truth: the `reservations` collection.
+ *  - guest requests   : { source: 'guest', status: 'pending' }
+ *  - confirmed bookings: { status: 'confirmed' }
+ *  - manual blocks    : { source: 'admin', status: 'blocked' }
+ *
+ * Occupied statuses (dates taken): 'confirmed' and 'blocked'.
+ * The `availability` collection is a derived per-day occupancy index that is
+ * kept in sync by every mutation below, and is claim-protected by Firestore
+ * rules so two concurrent confirms cannot reserve the same day.
  */
 
 import { db, auth } from './firebase-config.js';
-import { loadBookedDates, loadBookedDatesWithMeta, initAdminCalendar, formatDateISO, saveAvailability, decorateDays } from './calendar.js';
+import { loadBookedDates, loadBookedDatesWithMeta, initAdminCalendar, formatDateISO, getDatesInRange, groupContiguousDates } from './calendar.js';
 import {
   signInWithEmailAndPassword,
   signOut,
@@ -14,32 +24,24 @@ import {
   collection,
   onSnapshot,
   getDoc,
-  setDoc,
-  updateDoc,
-  deleteDoc,
+  getDocs,
   doc,
   query,
-  orderBy
+  orderBy,
+  writeBatch,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 let unsubscribeReservations = null;
 let adminCalendarInstance = null;
-let originalBookedDates = new Set();
-let currentAdminSelectedDates = [];
-let saveAvailabilityListenerAttached = false;
 let bookedDatesMeta = new Map();
+let allReservations = [];
+let currentAdminSelectedDates = [];
+let saveManualBlocksListenerAttached = false;
 
-function getDatesInRange(checkIn, checkOut) {
-  const dates = [];
-  if (!checkIn || !checkOut) return dates;
-  const current = new Date(checkIn + 'T00:00:00');
-  const end = new Date(checkOut + 'T00:00:00');
-  while (current <= end) {
-    dates.push(formatDateISO(current));
-    current.setDate(current.getDate() + 1);
-  }
-  return dates;
-}
+/* ─── helpers ─────────────────────────────────────────────────────────── */
+
+function isOccupiedStatus(status) { return status === 'confirmed' || status === 'blocked'; }
 
 function showEl(el) { if (el) el.style.display = ''; }
 function hideEl(el) { if (el) el.style.display = 'none'; }
@@ -72,7 +74,7 @@ function formatDateDisplay(isoStr) {
 }
 
 function statusLabel(status) {
-  const labels = { pending: 'In attesa', confirmed: 'Confermata', rejected: 'Rifiutata' };
+  const labels = { pending: 'In attesa', confirmed: 'Confermata', rejected: 'Rifiutata', blocked: 'Bloccata' };
   return labels[status] || status;
 }
 
@@ -85,19 +87,24 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+/* ─── rendering ───────────────────────────────────────────────────────── */
+
 function renderReservations(docs, filterStatus = '') {
   const tbody = document.getElementById('reservations-tbody');
   if (!tbody) return;
 
-  const filtered = filterStatus ? docs.filter(d => d.data().status === filterStatus) : docs;
-
   const allData = docs.map(d => d.data());
   const pendingCount = allData.filter(d => d.status === 'pending').length;
   const confirmedCount = allData.filter(d => d.status === 'confirmed').length;
+  const blockedCount = allData.filter(d => d.status === 'blocked').length;
   const pendingChip = document.querySelector('.stat-chip--pending');
   const confirmedChip = document.querySelector('.stat-chip--confirmed');
+  const blockedChip = document.querySelector('.stat-chip--blocked');
   if (pendingChip) pendingChip.textContent = `${pendingCount} In attesa`;
   if (confirmedChip) confirmedChip.textContent = `${confirmedCount} Confermate`;
+  if (blockedChip) blockedChip.textContent = `${blockedCount} Bloccate`;
+
+  const filtered = filterStatus ? docs.filter(d => d.data().status === filterStatus) : docs;
 
   if (filtered.length === 0) {
     tbody.innerHTML = `<tr class="empty-row"><td colspan="6">Nessuna prenotazione trovata</td></tr>`;
@@ -107,89 +114,116 @@ function renderReservations(docs, filterStatus = '') {
   tbody.innerHTML = filtered.map(docSnap => {
     const d = docSnap.data();
     const id = docSnap.id;
+    const isManual = d.source === 'admin' && d.status === 'blocked';
     const badgeClass = `badge badge--${d.status}`;
+    const rowClass = isManual ? 'tr--admin' : '';
+
+    const guestCell = isManual
+      ? `<strong>${escapeHtml(d.name || 'Blocco manuale')}</strong><br><span class="badge badge--admin">Manuale</span>`
+      : `<strong>${escapeHtml(d.name || '-')}</strong>`;
+    const contactCell = isManual
+      ? '-'
+      : `<a href="mailto:${escapeHtml(d.email || '')}">${escapeHtml(d.email || '-')}</a><br><small>${escapeHtml(d.phone || '-')}</small>`;
+
+    const actions = [];
+    if (!isManual) {
+      if (d.status !== 'confirmed') actions.push(`<button class="btn-action btn-confirm" data-id="${id}">Conferma</button>`);
+      if (d.status !== 'rejected') actions.push(`<button class="btn-action btn-reject" data-id="${id}">Rifiuta</button>`);
+    }
+    actions.push(`<button class="btn-action btn-delete" data-id="${id}">Elimina</button>`);
+
     return `
-      <tr data-id="${id}">
-        <td><strong>${escapeHtml(d.name || '-')}</strong></td>
-        <td><a href="mailto:${escapeHtml(d.email || '')}">${escapeHtml(d.email || '-')}</a><br><small>${escapeHtml(d.phone || '-')}</small></td>
+      <tr data-id="${id}" class="${rowClass}">
+        <td>${guestCell}</td>
+        <td>${contactCell}</td>
         <td>${formatDateDisplay(d.checkIn)} - ${formatDateDisplay(d.checkOut)}</td>
         <td>${d.guests || '-'}</td>
         <td><span class="${badgeClass}">${statusLabel(d.status)}</span></td>
-        <td class="action-cell">
-          ${d.status !== 'confirmed' ? `<button class="btn-action btn-confirm" data-id="${id}">Conferma</button>` : ''}
-          ${d.status !== 'rejected' ? `<button class="btn-action btn-reject" data-id="${id}">Rifiuta</button>` : ''}
-          <button class="btn-action btn-delete" data-id="${id}">Elimina</button>
-        </td>
+        <td class="action-cell">${actions.join('')}</td>
       </tr>`;
   }).join('');
 
   tbody.querySelectorAll('.btn-confirm').forEach(btn => {
-    btn.addEventListener('click', () => updateReservationStatus(btn.dataset.id, 'confirmed'));
+    btn.addEventListener('click', () => confirmReservation(btn.dataset.id));
   });
   tbody.querySelectorAll('.btn-reject').forEach(btn => {
-    btn.addEventListener('click', () => updateReservationStatus(btn.dataset.id, 'rejected'));
+    btn.addEventListener('click', () => rejectReservation(btn.dataset.id));
   });
   tbody.querySelectorAll('.btn-delete').forEach(btn => {
     btn.addEventListener('click', () => deleteReservation(btn.dataset.id));
   });
 }
 
-async function updateReservationStatus(id, status) {
-  try {
-    const reservationRef = doc(db, 'reservations', id);
-    const reservationSnap = await getDoc(reservationRef);
+/* ─── mutations (all keep `availability` in sync) ─────────────────────── */
 
-    if (!reservationSnap.exists()) {
-      showAdminMessage('Prenotazione non trovata.', 'error');
+async function confirmReservation(id) {
+  try {
+    const resRef = doc(db, 'reservations', id);
+    const snap = await getDoc(resRef);
+    if (!snap.exists()) { showAdminMessage('Prenotazione non trovata.', 'error'); return; }
+
+    const data = snap.data();
+    if (data.status === 'confirmed') { showAdminMessage('Già confermata.', 'success'); return; }
+    const dates = getDatesInRange(data.checkIn, data.checkOut);
+    if (dates.length === 0) { showAdminMessage('Date non valide.', 'error'); return; }
+
+    // Overlap check against persisted occupancy (fresh read, not UI state).
+    const booked = await loadBookedDates(db);
+    const conflict = dates.some(d => booked.has(d));
+    if (conflict) {
+      showAdminMessage('Alcune date risultano già occupate. Impossibile confermare.', 'error');
       return;
     }
 
-    const reservationData = reservationSnap.data();
-    const checkIn = reservationData.checkIn;
-    const checkOut = reservationData.checkOut;
-    const oldStatus = reservationData.status;
-    const dates = getDatesInRange(checkIn, checkOut);
-
-    if (status === 'confirmed') {
-      const bookedDates = await loadBookedDates(db);
-      const hasConflict = dates.some(d => bookedDates.has(d));
-      if (hasConflict) {
-        showAdminMessage(
-          'Alcune date risultano già bloccate. Impossibile confermare questa prenotazione.',
-          'error'
-        );
-        return;
-      }
-      await Promise.all(dates.map(d => setDoc(doc(db, 'availability', d), { type: 'blocked', reservationId: id })));
-    }
-
-    if (status === 'rejected' && oldStatus === 'confirmed') {
-      await Promise.all(dates.map(d => deleteDoc(doc(db, 'availability', d))));
-    }
-
-    await updateDoc(reservationRef, { status });
-    showAdminMessage(`Prenotazione ${status === 'confirmed' ? 'confermata' : 'rifiutata'}.`, 'success');
+    // Atomic claim + status update. If another confirm claimed any day in the
+    // meantime, the create-only rule fails the whole batch.
+    const batch = writeBatch(db);
+    dates.forEach(d => batch.set(doc(db, 'availability', d), { reservationId: id }));
+    batch.update(resRef, { status: 'confirmed' });
+    await batch.commit();
+    showAdminMessage('Prenotazione confermata.', 'success');
   } catch (err) {
-    console.error('Update error:', err);
-    showAdminMessage('Errore durante aggiornamento.', 'error');
+    console.error('Confirm error:', err);
+    showAdminMessage('Impossibile confermare: alcune date sono già occupate.', 'error');
+  }
+}
+
+async function rejectReservation(id) {
+  try {
+    const resRef = doc(db, 'reservations', id);
+    const snap = await getDoc(resRef);
+    if (!snap.exists()) { showAdminMessage('Prenotazione non trovata.', 'error'); return; }
+
+    const data = snap.data();
+    const dates = getDatesInRange(data.checkIn, data.checkOut);
+
+    const batch = writeBatch(db);
+    if (data.status === 'confirmed') {
+      dates.forEach(d => batch.delete(doc(db, 'availability', d)));
+    }
+    batch.update(resRef, { status: 'rejected' });
+    await batch.commit();
+    showAdminMessage('Prenotazione rifiutata.', 'success');
+  } catch (err) {
+    console.error('Reject error:', err);
+    showAdminMessage('Errore durante l\'aggiornamento.', 'error');
   }
 }
 
 async function deleteReservation(id) {
   if (!confirm('Eliminare questa prenotazione?')) return;
   try {
-    const reservationRef = doc(db, 'reservations', id);
-    const reservationSnap = await getDoc(reservationRef);
+    const resRef = doc(db, 'reservations', id);
+    const snap = await getDoc(resRef);
+    if (!snap.exists()) { showAdminMessage('Prenotazione non trovata.', 'error'); return; }
 
-    if (reservationSnap.exists()) {
-      const reservation = reservationSnap.data();
-      if (reservation.status === 'confirmed') {
-        const dates = getDatesInRange(reservation.checkIn, reservation.checkOut);
-        await Promise.all(dates.map(d => deleteDoc(doc(db, 'availability', d))));
-      }
+    const data = snap.data();
+    const batch = writeBatch(db);
+    if (isOccupiedStatus(data.status)) {
+      getDatesInRange(data.checkIn, data.checkOut).forEach(d => batch.delete(doc(db, 'availability', d)));
     }
-
-    await deleteDoc(reservationRef);
+    batch.delete(resRef);
+    await batch.commit();
     showAdminMessage('Prenotazione eliminata.', 'success');
   } catch (err) {
     console.error('Delete error:', err);
@@ -197,27 +231,88 @@ async function deleteReservation(id) {
   }
 }
 
+/* ─── availability reconciliation (manual blocks) ─────────────────────── */
+
+async function saveManualBlocks(selectedDates) {
+  const selectedSet = new Set(selectedDates.map(formatDateISO));
+
+  // Fresh read — never rely on possibly-stale UI state for a write.
+  const reservations = (await getDocs(collection(db, 'reservations'))).docs;
+
+  // Confirmed reservations are immutable from this view.
+  const confirmedDates = new Set();
+  reservations.forEach(ds => {
+    const d = ds.data();
+    if (d.status === 'confirmed') {
+      getDatesInRange(d.checkIn, d.checkOut).forEach(x => confirmedDates.add(x));
+    }
+  });
+
+  const targetManual = new Set([...selectedSet].filter(d => !confirmedDates.has(d)));
+
+  const manualSnaps = reservations.filter(ds => ds.data().source === 'admin' && ds.data().status === 'blocked');
+  const manualIds = new Set(manualSnaps.map(ds => ds.id));
+
+  const availMeta = await loadBookedDatesWithMeta(db);
+
+  // Phase 1 — remove existing manual reservations and their availability docs
+  // (plus any legacy orphan docs with no reservationId). Runs in its own batch
+  // so the day docs we are about to re-claim are gone before we create them.
+  const deleteBatch = writeBatch(db);
+  manualSnaps.forEach(ds => deleteBatch.delete(doc(db, 'reservations', ds.id)));
+  availMeta.forEach((meta, dateStr) => {
+    if (meta.reservationId === null || manualIds.has(meta.reservationId)) {
+      deleteBatch.delete(doc(db, 'availability', dateStr));
+    }
+  });
+  await deleteBatch.commit();
+
+  // Phase 2 — re-create manual blocks as reservation records + availability docs.
+  const createBatch = writeBatch(db);
+  groupContiguousDates(targetManual).forEach(({ checkIn, checkOut }) => {
+    const ref = doc(collection(db, 'reservations'));
+    createBatch.set(ref, {
+      source: 'admin',
+      status: 'blocked',
+      name: 'Blocco manuale',
+      guests: 0,
+      checkIn,
+      checkOut,
+      createdAt: serverTimestamp()
+    });
+    getDatesInRange(checkIn, checkOut).forEach(d => {
+      createBatch.set(doc(db, 'availability', d), { reservationId: ref.id });
+    });
+  });
+  await createBatch.commit();
+
+  showAdminMessage('Disponibilità aggiornata!', 'success');
+}
+
+/* ─── listeners ───────────────────────────────────────────────────────── */
+
 function startReservationsListener() {
   const q = query(collection(db, 'reservations'), orderBy('createdAt', 'desc'));
   const filterSelect = document.getElementById('filter-status');
-  let allDocs = [];
 
   unsubscribeReservations = onSnapshot(q, (snapshot) => {
-    allDocs = snapshot.docs;
-    renderReservations(allDocs, filterSelect ? filterSelect.value : '');
+    allReservations = snapshot.docs;
+    renderReservations(allReservations, filterSelect ? filterSelect.value : '');
   }, (err) => {
     console.error('Reservations listener error:', err);
     showAdminMessage('Errore caricamento prenotazioni.', 'error');
   });
 
   if (filterSelect) {
-    filterSelect.addEventListener('change', () => renderReservations(allDocs, filterSelect.value));
+    filterSelect.addEventListener('change', () => renderReservations(allReservations, filterSelect.value));
   }
 }
 
 function stopReservationsListener() {
   if (unsubscribeReservations) { unsubscribeReservations(); unsubscribeReservations = null; }
 }
+
+/* ─── calendar panel ──────────────────────────────────────────────────── */
 
 function attachDayTooltips(calendarEl) {
   calendarEl.querySelectorAll('.flatpickr-day:not(.prevMonthDay):not(.nextMonthDay)').forEach(dayEl => {
@@ -245,7 +340,7 @@ async function onDayMouseenter(e) {
   const meta = bookedDatesMeta.get(dateStr);
   if (!meta) return;
 
-  let tooltip = document.createElement('div');
+  const tooltip = document.createElement('div');
   tooltip.className = 'day-tooltip';
   tooltip.textContent = '...';
   dayEl.style.position = 'relative';
@@ -256,7 +351,10 @@ async function onDayMouseenter(e) {
       const resSnap = await getDoc(doc(db, 'reservations', meta.reservationId));
       if (!dayEl.querySelector('.day-tooltip')) return;
       if (resSnap.exists()) {
-        tooltip.textContent = resSnap.data().name || 'Prenotazione';
+        const rd = resSnap.data();
+        tooltip.textContent = (rd.source === 'admin' && rd.status === 'blocked')
+          ? 'Bloccata manualmente'
+          : (rd.name || 'Prenotazione');
       } else {
         tooltip.textContent = 'Prenotazione non trovata';
       }
@@ -275,36 +373,31 @@ async function initAdminCalendarSection() {
 
   try {
     bookedDatesMeta = await loadBookedDatesWithMeta(db);
-    originalBookedDates = new Set(bookedDatesMeta.keys());
-  }
-  catch (err) {
+  } catch (err) {
     console.error('Failed to load booked dates:', err);
     bookedDatesMeta = new Map();
-    originalBookedDates = new Set();
   }
 
-  // Pass the full meta Map so decorateDays can show reservation tooltips on reserved days
-  adminCalendarInstance = initAdminCalendar(calendarEl, originalBookedDates, (selectedDates) => {
+  const occupied = new Set(bookedDatesMeta.keys());
+
+  adminCalendarInstance = initAdminCalendar(calendarEl, occupied, (selectedDates) => {
     currentAdminSelectedDates = selectedDates;
   }, {
-    onMonthChange: () => { attachDayTooltips(calendarEl); },
-    onYearChange: () => { attachDayTooltips(calendarEl); },
-    // Pass meta Map for decorateDays tooltip integration
+    onMonthChange: () => attachDayTooltips(calendarEl),
+    onYearChange: () => attachDayTooltips(calendarEl),
     _bookedDatesMeta: bookedDatesMeta
   });
   attachDayTooltips(calendarEl);
-  currentAdminSelectedDates = Array.from(originalBookedDates).map(d => new Date(d + 'T00:00:00'));
+  currentAdminSelectedDates = Array.from(occupied).map(d => new Date(d + 'T00:00:00'));
 
   const saveBtn = document.getElementById('save-availability-btn');
-  if (saveBtn && !saveAvailabilityListenerAttached) {
-    saveAvailabilityListenerAttached = true;
+  if (saveBtn && !saveManualBlocksListenerAttached) {
+    saveManualBlocksListenerAttached = true;
     saveBtn.addEventListener('click', async () => {
       saveBtn.disabled = true;
       saveBtn.textContent = 'Salvataggio...';
       try {
-        await saveAvailability(db, originalBookedDates, currentAdminSelectedDates);
-        originalBookedDates = new Set(currentAdminSelectedDates.map(formatDateISO));
-        showAdminMessage('Disponibilita aggiornata!', 'success');
+        await saveManualBlocks(currentAdminSelectedDates);
       } catch (err) {
         console.error('Save availability error:', err);
         showAdminMessage('Errore salvataggio.', 'error');
@@ -315,6 +408,8 @@ async function initAdminCalendarSection() {
     });
   }
 }
+
+/* ─── panels / auth ───────────────────────────────────────────────────── */
 
 function initPanelSwitching() {
   const sidebarLinks = document.querySelectorAll('.sidebar-link[data-panel]');

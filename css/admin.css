@@ -441,6 +441,10 @@ input, select {
   background: rgba(52, 211, 153, 0.15);
   color: var(--success);
 }
+.stat-chip--blocked {
+  background: rgba(251, 146, 60, 0.15);
+  color: #FB923C;
+}
 
 .table-filters {
   padding: 1rem 1.5rem;
@@ -545,6 +549,25 @@ input, select {
   background: rgba(248, 113, 113, 0.15);
   color: var(--danger);
   border: 1px solid rgba(248, 113, 113, 0.3);
+}
+.badge--blocked {
+  background: rgba(251, 146, 60, 0.15);
+  color: #FB923C;
+  border: 1px solid rgba(251, 146, 60, 0.3);
+}
+.badge--admin {
+  background: rgba(251, 146, 60, 0.2);
+  color: #FB923C;
+  border: 1px solid rgba(251, 146, 60, 0.4);
+  margin-top: 0.25rem;
+}
+
+/* Manual (admin-created) entries are visually distinct */
+#reservations-table tbody tr.tr--admin {
+  background: rgba(251, 146, 60, 0.06);
+}
+#reservations-table tbody tr.tr--admin:hover {
+  background: rgba(251, 146, 60, 0.12);
 }
 
 .action-btns {

@@ -2,32 +2,50 @@ rules_version='2'
 
 service cloud.firestore {
   match /databases/{database}/documents {
-    match /reservations/{document=**} {
-      allow create: if true;
+
+    // Booking records — single source of truth.
+    match /reservations/{id} {
+      // Anyone can submit a *pending* guest request. Only an authenticated
+      // admin can create a manual 'blocked' entry. This blocks direct writes
+      // that would bypass availability (a guest can never reserve dates).
+      allow create: if
+        (request.resource.data.get('status', '') == 'pending'
+          && request.resource.data.get('source', '') == 'guest')
+        || (request.auth != null
+          && request.resource.data.get('source', '') == 'admin'
+          && request.resource.data.get('status', '') == 'blocked');
+
+      // Only authenticated users (admin) can read/update/delete records.
       allow read, update, delete: if request.auth != null;
+    }
+
+    // Derived occupancy index. Public read so the guest calendar can paint
+    // blocked days without exposing guest PII. Only admins can claim (create)
+    // or release (delete) a day. A claim is create-only so two concurrent
+    // confirms cannot both take the same day.
+    match /availability/{date} {
+      allow read: if true;
+      allow create: if request.auth != null;
+      allow update: if false;
+      allow delete: if request.auth != null;
     }
 
     match /calendars/{document=**} {
       allow read, write: if request.auth != null;
     }
-    // anyone can read only admin can write
-    match /availability/{document=**} {
-      allow read: if true;
-      allow write: if request.auth != null;
-    }
-    
+
     // Public collections - anyone can read, only admins can write
     match /amenities/{document=**} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.token.admin == true;
     }
-    
+
     // Pricing information - public read only
     match /pricing/{document=**} {
       allow read: if true;
       allow write: if request.auth != null && request.auth.token.admin == true;
     }
-    
+
     // Deny everything else by default
     match /{document=**} {
       allow read, write: if false;

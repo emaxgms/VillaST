@@ -48,6 +48,7 @@
   --space-8:  0.5rem;
   --space-12: 0.75rem;
   --space-16: 1rem;
+  --space-20: 1.25rem;
   --space-24: 1.5rem;
   --space-32: 2rem;
   --space-48: 3rem;
@@ -135,9 +136,12 @@ body .it { display: revert; }
 body.lang-en .en { display: revert; }
 body.lang-en .it { display: none; }
 
-/* Don't collapse inline-block elements like btn spans */
+/* Fix double-text: the generic rule above breaks buttons. Buttons use .btn
+   which keeps spans inline; handle via class-scoped rules instead. */
 body.lang-en .btn .en { display: inline-flex; }
 body .btn .it { display: inline-flex; }
+body.lang-en .btn .it { display: none; }
+body:not(.lang-en) .btn .en { display: none; }
 
 /* ---------------------------------------------------------------
    4. TYPOGRAPHY HIERARCHY
