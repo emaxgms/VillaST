@@ -13,18 +13,27 @@
  */
 
 import { collection, getDocs, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+// Pure date/per-day-state helpers live in day-state.js (no imports, node-testable).
+// Re-exported here so existing importers (admin.js, reservations.js, app.js) keep working.
+import {
+  formatDateISO,
+  addDays,
+  getDatesInRange,
+  groupContiguousDates,
+  rangeHasBlockedDate,
+  findFirstBlockedInRange,
+  buildAdminDayState
+} from './day-state.js';
 
-/**
- * Format a Date object to YYYY-MM-DD string (local timezone safe)
- * @param {Date} date
- * @returns {string}
- */
-export function formatDateISO(date) {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
+export {
+  formatDateISO,
+  addDays,
+  getDatesInRange,
+  groupContiguousDates,
+  rangeHasBlockedDate,
+  findFirstBlockedInRange,
+  buildAdminDayState
+};
 
 /**
  * Load all occupied dates from Firestore `availability` collection.
@@ -55,17 +64,25 @@ export async function loadBookedDatesWithMeta(db) {
 
 /**
  * Decorate every visible day cell in a Flatpickr instance with semantic CSS classes.
- * Called from onDayCreate so classes refresh on each month/year change.
+ * Called from onDayCreate, onMonthChange/onYearChange and after every fresh
+ * admin state build, so classes always reflect the CURRENT data (no stale colors).
  *
  * @param {object} fp — Flatpickr instance
- * @param {Set<string>|Map<string,object>} bookedDates — Set of blocked dates, or Map with meta
+ * @param {Set<string>|Map<string,object>} state — guest path: Set of blocked dates
+ *   (paints is-available/is-reserved/is-today only). Admin path: Map of per-day
+ *   state from buildAdminDayState() (paints per the semantic contract plus
+ *   is-pending + data-pending-count overlays and tooltips).
  * @param {object} [opts]
  * @param {boolean} [opts.showTooltips=false] — Add title attribute with reservation info (admin)
  */
-export function decorateDays(fp, bookedDates, opts = {}) {
+export function decorateDays(fp, state, opts = {}) {
+  if (!fp || !fp.calendarContainer) return;
+
   const dayElements = fp.calendarContainer.querySelectorAll(
     '.flatpickr-day:not(.prevMonthDay):not(.nextMonthDay):not(.flatpickr-otherMonth)'
   );
+  const isMap = state instanceof Map;
+  const today = formatDateISO(new Date());
 
   dayElements.forEach(dayEl => {
     // Parse the date from aria-label (Flatpickr stores "Month Day, YYYY")
@@ -79,40 +96,52 @@ export function decorateDays(fp, bookedDates, opts = {}) {
     if (isNaN(parsed.getTime())) return;
 
     const dateStr = formatDateISO(parsed);
-    const isBlocked = bookedDates.has(dateStr);
 
-    // Reset classes (except Flatpickr's own)
-    dayEl.classList.remove('is-reserved', 'is-available', 'is-today');
+    // ALWAYS remove every semantic class before re-adding, otherwise days
+    // that change state across months keep stale colors (root-cause fix).
+    dayEl.classList.remove(
+      'is-available', 'is-reserved',
+      'is-guest-confirmed', 'is-admin-blocked',
+      'is-pending', 'is-today'
+    );
+    dayEl.removeAttribute('data-pending-count');
 
-    // Today
-    const today = new Date();
-    if (dateStr === formatDateISO(today)) {
+    if (dateStr === today) {
       dayEl.classList.add('is-today');
     }
 
-    if (isBlocked) {
-      dayEl.classList.add('is-reserved');
-      if (bookedDates instanceof Map) {
-        const meta = bookedDates.get(dateStr);
-        if (meta && meta.source === 'admin' && meta.status === 'blocked') {
+    if (isMap) {
+      // Admin path: per-day state map (buildAdminDayState output or legacy meta map)
+      const st = state.get(dateStr);
+      const occupied = st && (st.status === 'confirmed' || st.status === 'blocked');
+
+      if (occupied) {
+        if (st.source === 'admin' && st.status === 'blocked') {
           dayEl.classList.add('is-admin-blocked');
         } else {
           dayEl.classList.add('is-guest-confirmed');
         }
+      } else {
+        dayEl.classList.add('is-available');
       }
-    } else {
-      dayEl.classList.add('is-available');
-    }
 
-    // Admin: show reservation tooltip on reserved days
-    if (opts.showTooltips && isBlocked && bookedDates instanceof Map) {
-      const meta = bookedDates.get(dateStr);
-      if (meta) {
-        const isManual = meta.source === 'admin' && meta.status === 'blocked';
-        const resId = meta.reservationId;
+      if (st && st.pendingCount > 0) {
+        dayEl.classList.add('is-pending');
+        dayEl.dataset.pendingCount = String(st.pendingCount);
+      }
+
+      if (opts.showTooltips && occupied && st) {
+        const isManual = st.source === 'admin' && st.status === 'blocked';
         dayEl.title = isManual
           ? 'Bloccata manualmente'
-          : (resId ? `Bloccata — prenotazione #${resId.slice(0, 8)}` : 'Bloccata');
+          : (st.reservationId ? `Bloccata — prenotazione #${st.reservationId.slice(0, 8)}` : 'Bloccata');
+      }
+    } else {
+      // Legacy guest path: Set of blocked dates
+      if (state.has(dateStr)) {
+        dayEl.classList.add('is-reserved');
+      } else {
+        dayEl.classList.add('is-available');
       }
     }
   });
@@ -142,43 +171,6 @@ export function createCalendarLegend(container) {
     </span>
   `;
   container.appendChild(legend);
-}
-
-/**
- * Check whether any day in the inclusive range [start, end] is blocked.
- * Used for guest range validation (catches partial overlaps).
- * @param {Date} start
- * @param {Date} end
- * @param {Set<string>} bookedDates
- * @returns {boolean}
- */
-export function rangeHasBlockedDate(start, end, bookedDates) {
-  const current = new Date(start.getTime());
-  const endTime = end.getTime();
-  while (current.getTime() <= endTime) {
-    if (bookedDates.has(formatDateISO(current))) return true;
-    current.setDate(current.getDate() + 1);
-  }
-  return false;
-}
-
-/**
- * Find the first blocked date in the inclusive range [start, end].
- * Returns null if no blocked dates exist in the range.
- * @param {Date} start
- * @param {Date} end
- * @param {Set<string>} bookedDates
- * @returns {string|null} YYYY-MM-DD of first blocked date, or null
- */
-export function findFirstBlockedInRange(start, end, bookedDates) {
-  const current = new Date(start.getTime());
-  const endTime = end.getTime();
-  while (current.getTime() <= endTime) {
-    const iso = formatDateISO(current);
-    if (bookedDates.has(iso)) return iso;
-    current.setDate(current.getDate() + 1);
-  }
-  return null;
 }
 
 /**
@@ -411,31 +403,29 @@ export function initGuestCalendar(checkInEl, checkOutEl, bookedDates) {
 }
 
 /**
- * Initialize the admin calendar (inline, multi-select for blocking dates)
+ * Initialize the admin calendar (inline, day-click popup interaction).
+ * No defaultDate: it MUST open on the current month (a preselected stale date
+ * used to force the picker onto an old month). Occupied/pending days are
+ * painted by decorateDays on every render (onDayCreate / month / year change).
+ *
  * @param {HTMLElement} el — container element for inline calendar
- * @param {Set<string>} bookedDates — initial blocked dates
- * @param {function(Date[]): void} onChange — called when selection changes
- * @param {object} extraOptions - additional Flatpickr options
+ * @param {Set<string>|Map<string,object>} bookedDates — initial state passed to decorateDays
+ * @param {function(Date[]): void} [onChange] — kept for API compatibility, no longer wired
+ *   (the old select-then-save interaction is replaced by the day popup)
+ * @param {object} extraOptions - additional Flatpickr options (e.g. onDayClick, onMonthChange)
  * @returns {object} Flatpickr instance
  */
 export function initAdminCalendar(el, bookedDates, onChange, extraOptions = {}) {
-  const preselected = Array.from(bookedDates);
-  // Use meta Map for tooltips if available, otherwise fall back to plain Set
+  // Use meta Map if provided, otherwise the 2nd arg itself (admin passes a Map).
   const metaMap = extraOptions._bookedDatesMeta || null;
+  const state = metaMap || bookedDates;
 
   return flatpickr(el, {
-    mode: 'multiple',
     inline: true,
     dateFormat: 'Y-m-d',
-    defaultDate: preselected,
     locale: { firstDayOfWeek: 1 },
     onDayCreate: function (selectedDates, dateStr, instance) {
-      decorateDays(instance, metaMap || bookedDates, { showTooltips: !!metaMap });
-    },
-    onChange: (selectedDates) => {
-      if (typeof onChange === 'function') {
-        onChange(selectedDates);
-      }
+      decorateDays(instance, state, { showTooltips: state instanceof Map });
     },
     ...extraOptions
   });
@@ -454,52 +444,4 @@ export function dateRangeHasConflict(checkIn, checkOut, bookedDates) {
   const start = new Date(checkIn + 'T00:00:00');
   const end = new Date(checkOut + 'T00:00:00');
   return rangeHasBlockedDate(start, end, bookedDates);
-}
-
-/**
- * Add (or subtract) days to a YYYY-MM-DD string, returning YYYY-MM-DD.
- * @param {string} isoStr
- * @param {number} n
- * @returns {string}
- */
-export function addDays(isoStr, n) {
-  const d = new Date(isoStr + 'T00:00:00');
-  d.setDate(d.getDate() + n);
-  return formatDateISO(d);
-}
-
-/**
- * Expand an inclusive [checkIn, checkOut] range into its list of day strings.
- * @param {string} checkIn — YYYY-MM-DD
- * @param {string} checkOut — YYYY-MM-DD
- * @returns {string[]}
- */
-export function getDatesInRange(checkIn, checkOut) {
-  const dates = [];
-  if (!checkIn || !checkOut) return dates;
-  const current = new Date(checkIn + 'T00:00:00');
-  const end = new Date(checkOut + 'T00:00:00');
-  while (current <= end) {
-    dates.push(formatDateISO(current));
-    current.setDate(current.getDate() + 1);
-  }
-  return dates;
-}
-
-/**
- * Group a set of dates into contiguous [checkIn, checkOut] ranges.
- * @param {Set<string>|string[]} dateSet — YYYY-MM-DD strings
- * @returns {{checkIn:string, checkOut:string}[]}
- */
-export function groupContiguousDates(dateSet) {
-  const sorted = [...dateSet].sort();
-  const ranges = [];
-  let start = null, prev = null;
-  for (const d of sorted) {
-    if (start === null) { start = d; prev = d; continue; }
-    if (d === addDays(prev, 1)) { prev = d; }
-    else { ranges.push({ checkIn: start, checkOut: prev }); start = d; prev = d; }
-  }
-  if (start !== null) ranges.push({ checkIn: start, checkOut: prev });
-  return ranges;
 }

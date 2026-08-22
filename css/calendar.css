@@ -163,7 +163,7 @@
 
 .calendar-instructions {
   width: 100%;
-  max-width: 400px;
+  max-width: 720px; /* big admin calendar column (was 400px) */
   margin: 0 auto;
 }
 
@@ -172,6 +172,82 @@
   border: 1px solid var(--border, #2E3347) !important;
   border-radius: var(--radius-lg, 12px) !important;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3) !important;
+  width: 100% !important;
+  max-width: none !important;
+  padding: 1.25rem 1.25rem 1.5rem !important;
+}
+
+/* Bigger month header + nav arrows */
+.calendar-instructions .flatpickr-months {
+  margin-bottom: 0.25rem;
+}
+.calendar-instructions .flatpickr-current-month {
+  font-size: 1.35rem !important;
+  line-height: 1.2 !important;
+}
+.calendar-instructions .flatpickr-prev-month,
+.calendar-instructions .flatpickr-next-month {
+  padding: 0.6rem !important;
+}
+.calendar-instructions .flatpickr-prev-month svg,
+.calendar-instructions .flatpickr-next-month svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* Comfortable weekday header row */
+.calendar-instructions span.flatpickr-weekday {
+  font-size: 0.78rem !important;
+  padding-top: 0.75rem !important;
+  padding-bottom: 0.5rem !important;
+}
+
+/* Big day cells with a defined 1px grid */
+.calendar-instructions .flatpickr-day {
+  height: 58px !important;
+  line-height: 56px !important;
+  font-size: 1.05rem !important;
+  border-radius: 10px !important;
+  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  margin: 2px 0 !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease,
+    background 0.15s ease !important;
+}
+
+.calendar-instructions .flatpickr-day:hover:not(.flatpickr-disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+  z-index: 2;
+}
+
+/* Today ring */
+.calendar-instructions .flatpickr-day.is-today {
+  border: 2px solid var(--success, #34D399) !important;
+  font-weight: 600;
+}
+
+/* Pending request(s): amber tint + count badge.
+   Placed BEFORE occupied rules so is-guest-confirmed / is-admin-blocked
+   backgrounds stay dominant when combined; the ::after badge still shows. */
+.calendar-instructions .flatpickr-day.is-pending {
+  background: rgba(251, 191, 36, 0.12) !important;
+}
+.calendar-instructions .flatpickr-day.is-pending[data-pending-count]:not([data-pending-count="0"])::after {
+  content: attr(data-pending-count);
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--warning, #FBBF24);
+  color: #1A1D27;
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
 }
 
 /* 1. Days blocked in DB AND selected by Flatpickr (Solid Terracotta) */
@@ -203,18 +279,18 @@
   box-shadow: 0 4px 10px rgba(193, 105, 79, 0.4) !important;
 }
 
-/* 2. Days available in DB AND not selected (Soft Green Glow) */
+/* 2. Free days (subtle emerald tint, clearly clickable) */
 .calendar-instructions .flatpickr-day.is-available:not(.selected) {
-  color: #34D399 !important; /* Soft Emerald Green */
-  background: rgba(52, 211, 153, 0.06) !important;
-  border: 1px solid rgba(52, 211, 153, 0.15) !important;
+  color: var(--success, #34D399) !important;
+  background: rgba(52, 211, 153, 0.08) !important;
+  border: 1px solid rgba(52, 211, 153, 0.28) !important;
   pointer-events: auto !important;
 }
 
 .calendar-instructions .flatpickr-day.is-available:not(.selected):hover {
-  background: rgba(52, 211, 153, 0.18) !important;
-  border-color: #34D399 !important;
-  color: #FFFFFF !important;
+  background: rgba(52, 211, 153, 0.16) !important;
+  border-color: var(--success, #34D399) !important;
+  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.15);
 }
 
 /* 3. Days blocked in DB BUT clicked by admin to unblock (Dashed Red Border) */
@@ -235,28 +311,43 @@
   font-weight: 600 !important;
 }
 
-/* 5. Today indicator in Admin Calendar */
-.calendar-instructions .flatpickr-day.is-today {
-  border: 1.5px solid var(--success, #34D399) !important;
-}
-
-/* 6. Manual admin blocks vs confirmed guest bookings */
+/* 5. Manual admin blocks vs confirmed guest bookings (dashed, line-through) */
 .calendar-instructions .flatpickr-day.is-admin-blocked:not(.selected) {
-  background: rgba(193, 105, 79, 0.12) !important;
+  background: rgba(193, 105, 79, 0.14) !important;
   border: 1.5px dashed var(--terra, #C1694F) !important;
-  color: var(--terra, #C1694F) !important;
+  color: #E5A08B !important;
   text-decoration: line-through !important;
+  text-decoration-color: rgba(229, 160, 139, 0.55) !important;
   pointer-events: auto !important;
-  opacity: 0.85;
 }
 
 .calendar-instructions .flatpickr-day.is-guest-confirmed:not(.selected) {
-  background: rgba(46, 134, 171, 0.12) !important;
+  background: rgba(46, 134, 171, 0.14) !important;
   border: 1.5px dashed var(--azure, #2E86AB) !important;
-  color: var(--azure, #2E86AB) !important;
+  color: #7FC4E4 !important;
   text-decoration: line-through !important;
+  text-decoration-color: rgba(127, 196, 228, 0.55) !important;
   pointer-events: auto !important;
-  opacity: 0.85;
+}
+
+/* Dimmed disabled/out-of-month days */
+.calendar-instructions .flatpickr-day.flatpickr-disabled,
+.calendar-instructions .flatpickr-day.flatpickr-disabled:hover {
+  color: rgba(139, 143, 168, 0.35) !important;
+  background: transparent !important;
+  border-color: transparent !important;
+  cursor: not-allowed !important;
+  transform: none;
+  box-shadow: none;
+}
+
+/* Responsive: compact 44px cells on narrow screens */
+@media (max-width: 560px) {
+  .calendar-instructions .flatpickr-day {
+    height: 44px !important;
+    line-height: 42px !important;
+    font-size: 0.9rem !important;
+  }
 }
 
 /* ─── Legend & Appended Widgets ─────────────────────────────────────────── */
