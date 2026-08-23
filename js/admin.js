@@ -14,7 +14,16 @@
  */
 
 import { db, auth } from './firebase-config.js';
-import { loadBookedDates, loadBookedDatesWithMeta, initAdminCalendar, decorateDays, formatDateISO, getDatesInRange, groupContiguousDates } from './calendar.js';
+import {
+  loadBookedDates,
+  initAdminCalendar,
+  decorateDays,
+  formatDateISO,
+  addDays,
+  getDatesInRange,
+  groupContiguousDates,
+  buildAdminDayState
+} from './calendar.js';
 import {
   signInWithEmailAndPassword,
   signOut,
@@ -34,10 +43,10 @@ import {
 
 let unsubscribeReservations = null;
 let adminCalendarInstance = null;
-let bookedDatesMeta = new Map();
 let allReservations = [];
-let currentAdminSelectedDates = [];
-let saveManualBlocksListenerAttached = false;
+let adminAvailabilityDocs = [];
+// Fresh per-day state map rebuilt on every snapshot/render (never one-shot enriched).
+let adminDayState = new Map();
 
 /* ─── helpers ─────────────────────────────────────────────────────────── */
 
@@ -231,73 +240,27 @@ async function deleteReservation(id) {
   }
 }
 
-/* ─── availability reconciliation (manual blocks) ─────────────────────── */
-
-async function saveManualBlocks(selectedDates) {
-  const selectedSet = new Set(selectedDates.map(formatDateISO));
-
-  // Fresh read — never rely on possibly-stale UI state for a write.
-  const reservations = (await getDocs(collection(db, 'reservations'))).docs;
-
-  // Confirmed reservations are immutable from this view.
-  const confirmedDates = new Set();
-  reservations.forEach(ds => {
-    const d = ds.data();
-    if (d.status === 'confirmed') {
-      getDatesInRange(d.checkIn, d.checkOut).forEach(x => confirmedDates.add(x));
-    }
-  });
-
-  const targetManual = new Set([...selectedSet].filter(d => !confirmedDates.has(d)));
-
-  const manualSnaps = reservations.filter(ds => ds.data().source === 'admin' && ds.data().status === 'blocked');
-  const manualIds = new Set(manualSnaps.map(ds => ds.id));
-
-  const availMeta = await loadBookedDatesWithMeta(db);
-
-  // Phase 1 — remove existing manual reservations and their availability docs
-  // (plus any legacy orphan docs with no reservationId). Runs in its own batch
-  // so the day docs we are about to re-claim are gone before we create them.
-  const deleteBatch = writeBatch(db);
-  manualSnaps.forEach(ds => deleteBatch.delete(doc(db, 'reservations', ds.id)));
-  availMeta.forEach((meta, dateStr) => {
-    if (meta.reservationId === null || manualIds.has(meta.reservationId)) {
-      deleteBatch.delete(doc(db, 'availability', dateStr));
-    }
-  });
-  await deleteBatch.commit();
-
-  // Phase 2 — re-create manual blocks as reservation records + availability docs.
-  const createBatch = writeBatch(db);
-  groupContiguousDates(targetManual).forEach(({ checkIn, checkOut }) => {
-    const ref = doc(collection(db, 'reservations'));
-    createBatch.set(ref, {
-      source: 'admin',
-      status: 'blocked',
-      name: 'Blocco manuale',
-      guests: 0,
-      checkIn,
-      checkOut,
-      createdAt: serverTimestamp()
-    });
-    getDatesInRange(checkIn, checkOut).forEach(d => {
-      createBatch.set(doc(db, 'availability', d), { reservationId: ref.id });
-    });
-  });
-  await createBatch.commit();
-
-  showAdminMessage('Disponibilità aggiornata!', 'success');
-}
-
 /* ─── listeners ───────────────────────────────────────────────────────── */
 
 function startReservationsListener() {
   const q = query(collection(db, 'reservations'), orderBy('createdAt', 'desc'));
   const filterSelect = document.getElementById('filter-status');
 
-  unsubscribeReservations = onSnapshot(q, (snapshot) => {
+  unsubscribeReservations = onSnapshot(q, async (snapshot) => {
     allReservations = snapshot.docs;
     renderReservations(allReservations, filterSelect ? filterSelect.value : '');
+
+    // Rebuild the per-day state FRESH (never reuse a stale enrichment) and
+    // repaint the live calendar, so new confirmations/blocks repaint
+    // immediately — including across month boundaries (bug fix).
+    try {
+      const avail = await getDocs(collection(db, 'availability'));
+      adminAvailabilityDocs = Array.isArray(avail) ? avail : avail.docs;
+    } catch (err) {
+      console.error('Failed to refresh availability index:', err);
+    }
+    adminDayState = buildAdminDayState(allReservations, adminAvailabilityDocs);
+    refreshAdminCalendar();
   }, (err) => {
     console.error('Reservations listener error:', err);
     showAdminMessage('Errore caricamento prenotazioni.', 'error');
@@ -312,121 +275,286 @@ function stopReservationsListener() {
   if (unsubscribeReservations) { unsubscribeReservations(); unsubscribeReservations = null; }
 }
 
-/* ─── calendar panel ──────────────────────────────────────────────────── */
+/* ─── calendar panel (v2: day-click popup) ────────────────────────────── */
 
-function attachDayTooltips(calendarEl) {
-  calendarEl.querySelectorAll('.flatpickr-day:not(.prevMonthDay):not(.nextMonthDay)').forEach(dayEl => {
-    dayEl.addEventListener('mouseenter', onDayMouseenter);
-    dayEl.addEventListener('mouseleave', onDayMouseleave);
-  });
-}
-
-function onDayMouseleave(e) {
-  const existing = e.currentTarget.querySelector('.day-tooltip');
-  if (existing) existing.remove();
-}
-
-async function onDayMouseenter(e) {
-  const dayEl = e.currentTarget;
-  if (dayEl.classList.contains('flatpickr-disabled')) return;
-
-  const ariaLabel = dayEl.getAttribute('aria-label');
-  if (!ariaLabel) return;
-
-  const parsed = new Date(ariaLabel);
-  if (isNaN(parsed.getTime())) return;
-  const dateStr = formatDateISO(parsed);
-
-  const meta = bookedDatesMeta.get(dateStr);
-  if (!meta) return;
-
-  const tooltip = document.createElement('div');
-  tooltip.className = 'day-tooltip';
-  tooltip.textContent = '...';
-  dayEl.style.position = 'relative';
-  dayEl.appendChild(tooltip);
-
-  if (meta.reservationId) {
-    try {
-      const resSnap = await getDoc(doc(db, 'reservations', meta.reservationId));
-      if (!dayEl.querySelector('.day-tooltip')) return;
-      if (resSnap.exists()) {
-        const rd = resSnap.data();
-        tooltip.textContent = (rd.source === 'admin' && rd.status === 'blocked')
-          ? 'Bloccata manualmente'
-          : (rd.name || 'Prenotazione');
-      } else {
-        tooltip.textContent = 'Prenotazione non trovata';
-      }
-    } catch {
-      if (dayEl.querySelector('.day-tooltip')) tooltip.textContent = 'Errore';
-    }
-  } else {
-    tooltip.textContent = 'Bloccata manualmente';
+function refreshAdminCalendar() {
+  if (adminCalendarInstance) {
+    decorateDays(adminCalendarInstance, adminDayState, { showTooltips: true });
   }
 }
 
 async function initAdminCalendarSection() {
   const calendarEl = document.getElementById('admin-calendar');
   if (!calendarEl) return;
-  currentAdminSelectedDates = [];
 
   try {
-    bookedDatesMeta = await loadBookedDatesWithMeta(db);
+    const avail = await getDocs(collection(db, 'availability'));
+    adminAvailabilityDocs = Array.isArray(avail) ? avail : avail.docs;
   } catch (err) {
-    console.error('Failed to load booked dates:', err);
-    bookedDatesMeta = new Map();
+    console.error('Failed to load availability index:', err);
   }
+  adminDayState = buildAdminDayState(allReservations, adminAvailabilityDocs);
 
-  // Enrich availability metadata with source/status from reservation docs
-  // so the calendar can color manual admin blocks differently from guest bookings.
-  const reservationById = new Map(allReservations.map(ds => [ds.id, ds.data()]));
-  bookedDatesMeta.forEach((meta, dateStr) => {
-    const res = meta.reservationId ? reservationById.get(meta.reservationId) : null;
-    if (res) {
-      meta.source = res.source || meta.source;
-      meta.status = res.status || meta.status;
+  adminCalendarInstance = initAdminCalendar(calendarEl, adminDayState, null, {
+    onMonthChange: () => refreshAdminCalendar(),
+    onYearChange: () => refreshAdminCalendar()
+  });
+  // flatpickr (v4.6, the loaded bundle) exposes NO onDayClick option — only
+  // onDayCreate. Intercept day clicks with a native capture listener on the
+  // calendar container: preventDefault + stopPropagation blocks flatpickr's
+  // own selection logic and opens the day popup instead.
+  adminCalendarInstance.calendarContainer.addEventListener('click', onDayClickCapture, true);
+  refreshAdminCalendar();
+}
+
+/* ─── day popup (poppover) ────────────────────────────────────────────── */
+
+function onDayClickCapture(e) {
+  const target = e.target;
+  if (!target || !target.classList || !target.classList.contains('flatpickr-day')) return;
+  if (target.classList.contains('flatpickr-disabled')) return;
+  const ariaLabel = target.getAttribute('aria-label');
+  if (!ariaLabel) return;
+  const parsed = new Date(ariaLabel);
+  if (isNaN(parsed.getTime())) return;
+  e.preventDefault();
+  e.stopPropagation();
+  openDayPopup(formatDateISO(parsed));
+}
+
+function dateStrTitle(dateStr) {
+  const s = new Date(dateStr + 'T12:00:00').toLocaleDateString('it-IT', {
+    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+  });
+  return s.replace(/\b\w/g, c => c.toUpperCase()); // 'Gio 27 Ago 2026'
+}
+
+function getPendingOverlaps(dateStr) {
+  return allReservations
+    .filter(ds => ds.data().status === 'pending')
+    .filter(ds => getDatesInRange(ds.data().checkIn, ds.data().checkOut).includes(dateStr))
+    .map(ds => ({ id: ds.id, data: ds.data() }));
+}
+
+function openDayPopup(dateStr) {
+  const popup = document.getElementById('day-popup');
+  if (!popup) return;
+
+  const st = adminDayState.get(dateStr);
+  const occupied = st && (st.status === 'confirmed' || st.status === 'blocked');
+  const isBlock = st && st.source === 'admin' && st.status === 'blocked';
+  const pending = getPendingOverlaps(dateStr);
+
+  popup.querySelector('.poppover__title').textContent = dateStrTitle(dateStr);
+
+  const bodyEl = popup.querySelector('.poppover__body');
+  let html = '';
+  if (occupied) {
+    html += `<div class="poppover__row ${isBlock ? 'poppover__row--blocked' : 'poppover__row--confirmed'}">
+      <strong>${escapeHtml(st.name || (isBlock ? 'Blocco manuale' : 'Prenotazione'))}</strong>
+      <span>${formatDateDisplay(st.checkIn)} → ${formatDateDisplay(st.checkOut)}</span>
+      ${st.source === 'guest' ? `<small>Ospiti: ${st.guests || '?'}</small>` : ''}
+    </div>`;
+  } else {
+    html += '<p class="poppover__free">Data libera</p>';
+  }
+  if (pending.length) {
+    html += `<h4 class="poppover__pending-title">Richieste in attesa su questo giorno</h4>` + pending.map(p => `
+      <div class="poppover__row poppover__row--pending">
+        <strong>${escapeHtml(p.data.name || '-')}</strong>
+        <span>${formatDateDisplay(p.data.checkIn)} → ${formatDateDisplay(p.data.checkOut)} · ${p.data.guests || '?'} ospiti</span>
+        <span class="poppover__stepper">
+          <button class="poppover__btn" data-confirm="${p.id}">Conferma</button>
+          <button class="poppover__btn" data-reject="${p.id}">Rifiuta</button>
+        </span>
+      </div>`).join('');
+  }
+  bodyEl.innerHTML = html;
+
+  const actionsEl = popup.querySelector('.poppover__actions');
+  let actions = [];
+  if (!occupied) {
+    actions.push('<button class="poppover__btn btn-primary" data-action="occupy">Occupare manualmente</button>');
+  } else if (isBlock) {
+    actions.push('<button class="poppover__btn poppover__btn--danger" data-action="remove-block">Rimuovi blocco</button>');
+  } else {
+    actions.push(
+      '<button class="poppover__btn" data-action="duration-minus">Durata −1</button>',
+      '<button class="poppover__btn" data-action="duration-plus">Durata +1</button>',
+      '<button class="poppover__btn" data-action="guests-minus">Ospiti −1</button>',
+      '<button class="poppover__btn" data-action="guests-plus">Ospiti +1</button>',
+      '<button class="poppover__btn poppover__btn--danger" data-action="delete">Elimina prenotazione</button>'
+    );
+  }
+  actionsEl.innerHTML = actions.join('');
+
+  popup._dayDateStr = dateStr;
+  popup.hidden = false;
+}
+
+function closeDayPopup() {
+  const popup = document.getElementById('day-popup');
+  if (popup) popup.hidden = true;
+}
+
+function initDayPopup() {
+  const popup = document.getElementById('day-popup');
+  if (!popup) return;
+
+  popup.querySelector('.poppover__close').addEventListener('click', closeDayPopup);
+  popup.querySelector('.poppover__backdrop').addEventListener('click', closeDayPopup);
+
+  popup.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-action],[data-confirm],[data-reject]');
+    if (!btn) return;
+    const dateStr = popup._dayDateStr;
+    const st = adminDayState.get(dateStr);
+
+    if (btn.dataset.confirm) { confirmReservation(btn.dataset.confirm); closeDayPopup(); return; }
+    if (btn.dataset.reject) { rejectReservation(btn.dataset.reject); closeDayPopup(); return; }
+
+    switch (btn.dataset.action) {
+      case 'occupy': occupyDay(dateStr); break;
+      case 'remove-block': removeBlockDay(st ? st.reservationId : null, dateStr); break;
+      case 'duration-plus': changeDuration(st ? st.reservationId : null, +1); break;
+      case 'duration-minus': changeDuration(st ? st.reservationId : null, -1); break;
+      case 'guests-plus': changeGuests(st ? st.reservationId : null, +1); break;
+      case 'guests-minus': changeGuests(st ? st.reservationId : null, -1); break;
+      case 'delete': closeDayPopup(); deleteReservation(st ? st.reservationId : null); break;
     }
   });
 
-  const occupied = new Set(bookedDatesMeta.keys());
-
-  adminCalendarInstance = initAdminCalendar(calendarEl, occupied, (selectedDates) => {
-    currentAdminSelectedDates = selectedDates;
-  }, {
-    // Flatpickr builds days in a detached fragment: onDayCreate fires before
-    // day elements exist in calendarContainer, so decorateDays there finds
-    // nothing. Decorate explicitly after render and on every month change.
-    onMonthChange: () => {
-      decorateDays(adminCalendarInstance, bookedDatesMeta, { showTooltips: true });
-      attachDayTooltips(calendarEl);
-    },
-    onYearChange: () => {
-      decorateDays(adminCalendarInstance, bookedDatesMeta, { showTooltips: true });
-      attachDayTooltips(calendarEl);
-    },
-    _bookedDatesMeta: bookedDatesMeta
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && !popup.hidden) closeDayPopup();
   });
-  decorateDays(adminCalendarInstance, bookedDatesMeta, { showTooltips: true });
-  attachDayTooltips(calendarEl);
-  currentAdminSelectedDates = Array.from(occupied).map(d => new Date(d + 'T00:00:00'));
+}
 
-  const saveBtn = document.getElementById('save-availability-btn');
-  if (saveBtn && !saveManualBlocksListenerAttached) {
-    saveManualBlocksListenerAttached = true;
-    saveBtn.addEventListener('click', async () => {
-      saveBtn.disabled = true;
-      saveBtn.textContent = 'Salvataggio...';
-      try {
-        await saveManualBlocks(currentAdminSelectedDates);
-      } catch (err) {
-        console.error('Save availability error:', err);
-        showAdminMessage('Errore salvataggio.', 'error');
-      } finally {
-        saveBtn.disabled = false;
-        saveBtn.textContent = 'Salva Modifiche';
-      }
+/* ─── popup actions (all keep `availability` in sync) ─────────────────── */
+
+async function occupyDay(dateStr) {
+  try {
+    const batch = writeBatch(db);
+    const ref = doc(collection(db, 'reservations'));
+    batch.set(ref, {
+      source: 'admin',
+      status: 'blocked',
+      name: 'Blocco manuale',
+      guests: 0,
+      checkIn: dateStr,
+      checkOut: dateStr,
+      createdAt: serverTimestamp()
     });
+    batch.set(doc(db, 'availability', dateStr), { reservationId: ref.id });
+    await batch.commit();
+    showAdminMessage(`${dateStr} bloccato manualmente (non disponibile per gli ospiti).`, 'success');
+    closeDayPopup();
+  } catch (err) {
+    console.error('Occupy error:', err);
+    showAdminMessage('Impossibile bloccare il giorno: data già occupata.', 'error');
+  }
+}
+
+async function removeBlockDay(resId, dateStr) {
+  if (!resId) return;
+  try {
+    const resRef = doc(db, 'reservations', resId);
+    const snap = await getDoc(resRef);
+    if (!snap.exists()) { showAdminMessage('Blocco non trovato.', 'error'); return; }
+
+    const data = snap.data();
+    const days = getDatesInRange(data.checkIn, data.checkOut);
+    if (days.length === 1) {
+      // Single-day block: remove the whole reservation + availability doc.
+      closeDayPopup();
+      return deleteReservation(resId);
+    }
+
+    // Multi-day block: remove just this day; if it splits the range into two,
+    // create a second admin block reservation for the remainder.
+    const ranges = groupContiguousDates(days.filter(d => d !== dateStr));
+    const batch = writeBatch(db);
+    batch.delete(doc(db, 'availability', dateStr));
+    batch.update(resRef, { checkIn: ranges[0].checkIn, checkOut: ranges[0].checkOut });
+    if (ranges.length === 2) {
+      const ref = doc(collection(db, 'reservations'));
+      batch.set(ref, {
+        source: 'admin',
+        status: 'blocked',
+        name: 'Blocco manuale',
+        guests: 0,
+        checkIn: ranges[1].checkIn,
+        checkOut: ranges[1].checkOut,
+        createdAt: serverTimestamp()
+      });
+      getDatesInRange(ranges[1].checkIn, ranges[1].checkOut).forEach(d => {
+        batch.set(doc(db, 'availability', d), { reservationId: ref.id });
+      });
+    }
+    await batch.commit();
+    showAdminMessage('Blocco aggiornato.', 'success');
+    closeDayPopup();
+  } catch (err) {
+    console.error('Remove block error:', err);
+    showAdminMessage('Errore durante la rimozione del blocco.', 'error');
+  }
+}
+
+async function changeDuration(resId, deltaDays) {
+  if (!resId) return;
+  try {
+    const resRef = doc(db, 'reservations', resId);
+    const snap = await getDoc(resRef);
+    if (!snap.exists()) { showAdminMessage('Prenotazione non trovata.', 'error'); return; }
+
+    const data = snap.data();
+    if (deltaDays > 0) {
+      // Extend checkOut by one day, with overlap prevention (fresh read).
+      const newOut = addDays(data.checkOut, 1);
+      const booked = await loadBookedDates(db);
+      if (booked.has(newOut)) {
+        showAdminMessage(`${newOut} è già occupata: impossibile estendere.`, 'error');
+        return;
+      }
+      const batch = writeBatch(db);
+      batch.update(resRef, { checkOut: newOut });
+      batch.set(doc(db, 'availability', newOut), { reservationId: resId });
+      await batch.commit();
+      showAdminMessage('Durata estesa di 1 giorno.', 'success');
+      closeDayPopup();
+    } else {
+      // Shrink checkOut by one day (minimum 1-night stay).
+      const newOut = addDays(data.checkOut, -1);
+      if (newOut < data.checkIn) {
+        showAdminMessage('La durata minima è 1 giorno.', 'error');
+        return;
+      }
+      const batch = writeBatch(db);
+      batch.update(resRef, { checkOut: newOut });
+      batch.delete(doc(db, 'availability', data.checkOut));
+      await batch.commit();
+      showAdminMessage('Durata ridotta di 1 giorno.', 'success');
+      closeDayPopup();
+    }
+  } catch (err) {
+    console.error('Duration error:', err);
+    showAdminMessage('Errore aggiornamento durata.', 'error');
+  }
+}
+
+async function changeGuests(resId, delta) {
+  if (!resId) return;
+  try {
+    const resRef = doc(db, 'reservations', resId);
+    const snap = await getDoc(resRef);
+    if (!snap.exists()) { showAdminMessage('Prenotazione non trovata.', 'error'); return; }
+
+    const guests = Math.max(1, (snap.data().guests || 1) + delta);
+    await writeBatch(db).update(resRef, { guests }).commit();
+    showAdminMessage(`Ospiti aggiornati: ${guests}.`, 'success');
+    closeDayPopup();
+  } catch (err) {
+    console.error('Guests error:', err);
+    showAdminMessage('Errore aggiornamento ospiti.', 'error');
   }
 }
 
@@ -478,6 +606,8 @@ document.addEventListener('DOMContentLoaded', () => {
   onAuthStateChanged(auth, (user) => {
     if (user) showDashboard(); else showLogin();
   });
+
+  initDayPopup();
 
   const loginForm = document.getElementById('login-form');
   if (loginForm) {

@@ -158,12 +158,10 @@
         </div>
         <div class="calendar-layout">
           <div class="calendar-instructions">
-            <p>Clicca sulle date per bloccarle o sbloccarle. Le date selezionate (in arancio) saranno marcate come <strong>non disponibili</strong>.</p>
-            <p>Le date occupate da prenotazioni <strong>confermate</strong> sono gestite dalla sezione Prenotazioni e non possono essere sbloccate qui. I blocchi manuali vengono salvati come voci in Prenotazioni (etichetta "Manuale") e possono essere eliminati da lì.</p>
+            <p>Clicca su un giorno per gestirlo: blocca manualmente una data libera (non disponibile per gli ospiti), modifica durata o ospiti di una prenotazione confermata, elimina un blocco manuale, oppure conferma o rifiuta le richieste in attesa che si sovrappongono a quel giorno.</p>
+            <p>Le date occupate da prenotazioni <strong>confermate</strong> e dai blocchi manuali sono gestite qui e nella sezione Prenotazioni.</p>
             <!-- Calendar container -->
             <div id="admin-calendar"></div>
-            <!-- Action -->
-            <button id="save-availability-btn" class="btn-primary btn-save">Salva Modifiche</button>
           </div>
           
           <div class="calendar-legend">
@@ -171,8 +169,20 @@
             <div class="legend-item"><span class="legend-dot legend-dot--available"></span> Data disponibile</div>
             <div class="legend-item"><span class="legend-dot legend-dot--admin-blocked"></span> Blocco manuale admin</div>
             <div class="legend-item"><span class="legend-dot legend-dot--guest-confirmed"></span> Prenotazione confermata</div>
-            <div class="legend-item"><span class="legend-dot legend-dot--mark-block"></span> Selezionata per blocco</div>
-            <div class="legend-item"><span class="legend-dot legend-dot--mark-unblock"></span> Selezionata per sblocco</div>
+            <div class="legend-item"><span class="legend-dot legend-dot--pending"></span> Richiesta in attesa</div>
+          </div>
+        </div>
+
+        <!-- Day popup (poppover) — filled by js/admin.js openDayPopup() -->
+        <div id="day-popup" class="poppover" hidden>
+          <div class="poppover__backdrop"></div>
+          <div class="poppover__card" role="dialog" aria-modal="true">
+            <header class="poppover__head">
+              <h3 class="poppover__title"></h3>
+              <button class="poppover__close" aria-label="Chiudi">&times;</button>
+            </header>
+            <div class="poppover__body"></div>
+            <footer class="poppover__actions"></footer>
           </div>
         </div>
       </section>
