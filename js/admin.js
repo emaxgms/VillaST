@@ -96,6 +96,19 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
+// Popup draft editor styles live in their own stylesheet, linked at runtime
+// so this file stays self-contained (admin.html owns <head> links).
+(function ensurePopupStylesheet() {
+  if (document.querySelector('link[href="css/admin-popup.css"]')) return;
+  const link = document.createElement('link');
+  link.rel = 'stylesheet';
+  link.href = 'css/admin-popup.css';
+  document.head.appendChild(link);
+})();
+
+// Max guests selectable in the popup draft editor.
+const MAX_GUESTS = 4;
+
 /* ─── rendering ───────────────────────────────────────────────────────── */
 
 function renderReservations(docs, filterStatus = '') {
@@ -143,12 +156,12 @@ function renderReservations(docs, filterStatus = '') {
 
     return `
       <tr data-id="${id}" class="${rowClass}">
-        <td>${guestCell}</td>
-        <td>${contactCell}</td>
-        <td>${formatDateDisplay(d.checkIn)} - ${formatDateDisplay(d.checkOut)}</td>
-        <td>${d.guests || '-'}</td>
-        <td><span class="${badgeClass}">${statusLabel(d.status)}</span></td>
-        <td class="action-cell">${actions.join('')}</td>
+        <td data-label="Ospite">${guestCell}</td>
+        <td data-label="Contatti">${contactCell}</td>
+        <td data-label="Periodo">${formatDateDisplay(d.checkIn)} - ${formatDateDisplay(d.checkOut)}</td>
+        <td data-label="Ospiti">${d.guests || '-'}</td>
+        <td data-label="Stato"><span class="${badgeClass}">${statusLabel(d.status)}</span></td>
+        <td data-label="Azioni" class="action-cell">${actions.join('')}</td>
       </tr>`;
   }).join('');
 
@@ -355,7 +368,23 @@ function openDayPopup(dateStr) {
       <span>${formatDateDisplay(st.checkIn)} → ${formatDateDisplay(st.checkOut)}</span>
       ${st.source === 'guest' ? `<small>Ospiti: ${st.guests || '?'}</small>` : ''}
     </div>`;
+    if (!isBlock) {
+      // Confirmed guest reservation → editable draft (applied only on Save).
+      html += '<div class="pdraft"></div>';
+      popup._draft = {
+        checkIn: st.checkIn,
+        checkOut: st.checkOut,
+        guests: st.guests || 1,
+        oldCheckIn: st.checkIn,
+        oldCheckOut: st.checkOut,
+        oldGuests: st.guests || 1
+      };
+      popup._bookedOther = null;
+    } else {
+      popup._draft = null;
+    }
   } else {
+    popup._draft = null;
     html += '<p class="poppover__free">Data libera</p>';
   }
   if (pending.length) {
@@ -379,10 +408,7 @@ function openDayPopup(dateStr) {
     actions.push('<button class="poppover__btn poppover__btn--danger" data-action="remove-block">Rimuovi blocco</button>');
   } else {
     actions.push(
-      '<button class="poppover__btn" data-action="duration-minus">Durata −1</button>',
-      '<button class="poppover__btn" data-action="duration-plus">Durata +1</button>',
-      '<button class="poppover__btn" data-action="guests-minus">Ospiti −1</button>',
-      '<button class="poppover__btn" data-action="guests-plus">Ospiti +1</button>',
+      '<button class="poppover__btn btn-primary" data-action="draft-save" disabled>Salva modifiche</button>',
       '<button class="poppover__btn poppover__btn--danger" data-action="delete">Elimina prenotazione</button>'
     );
   }
@@ -390,6 +416,20 @@ function openDayPopup(dateStr) {
 
   popup._dayDateStr = dateStr;
   popup.hidden = false;
+
+  // Draft editor: render immediately, then fill real availability once the
+  // fresh booked-dates read completes (validations depend on it).
+  if (popup._draft) {
+    renderDraftEditor(popup);
+    const openedDay = dateStr;
+    loadBookedDates(db)
+      .then(booked => {
+        if (popup.hidden || popup._dayDateStr !== openedDay) return; // reopened/closed meanwhile
+        popup._bookedOther = booked;
+        renderDraftEditor(popup);
+      })
+      .catch(err => console.error('Failed to load booked dates for popup:', err));
+  }
 }
 
 function closeDayPopup() {
@@ -413,15 +453,29 @@ function initDayPopup() {
     if (btn.dataset.confirm) { confirmReservation(btn.dataset.confirm); closeDayPopup(); return; }
     if (btn.dataset.reject) { rejectReservation(btn.dataset.reject); closeDayPopup(); return; }
 
+    // Draft editor actions only mutate local state — nothing is written until
+    // [Salva modifiche] commits the whole draft in one batch.
+    if (popup._draft && ['draft-in-minus', 'draft-in-plus', 'draft-out-minus', 'draft-out-plus'].includes(btn.dataset.action)) {
+      stepDraft(popup, btn.dataset.action);
+      return;
+    }
+    if (popup._draft && btn.dataset.action === 'draft-save') {
+      saveDraftChanges(popup, st ? st.reservationId : null);
+      return;
+    }
+
     switch (btn.dataset.action) {
       case 'occupy': occupyDay(dateStr); break;
       case 'remove-block': removeBlockDay(st ? st.reservationId : null, dateStr); break;
-      case 'duration-plus': changeDuration(st ? st.reservationId : null, +1); break;
-      case 'duration-minus': changeDuration(st ? st.reservationId : null, -1); break;
-      case 'guests-plus': changeGuests(st ? st.reservationId : null, +1); break;
-      case 'guests-minus': changeGuests(st ? st.reservationId : null, -1); break;
       case 'delete': closeDayPopup(); deleteReservation(st ? st.reservationId : null); break;
     }
+  });
+
+  // Ospiti dropdown → local draft only.
+  popup.addEventListener('change', (e) => {
+    if (!popup._draft || !e.target.matches('.pdraft__select')) return;
+    popup._draft.guests = parseInt(e.target.value, 10);
+    renderDraftEditor(popup);
   });
 
   document.addEventListener('keydown', (e) => {
@@ -499,62 +553,138 @@ async function removeBlockDay(resId, dateStr) {
   }
 }
 
-async function changeDuration(resId, deltaDays) {
-  if (!resId) return;
-  try {
-    const resRef = doc(db, 'reservations', resId);
-    const snap = await getDoc(resRef);
-    if (!snap.exists()) { showAdminMessage('Prenotazione non trovata.', 'error'); return; }
+/* ─── draft editor (confirmed reservations) ───────────────────────────── */
+// The popup holds a local draft {checkIn, checkOut, guests} plus the ORIGINAL
+// range (oldCheckIn/oldCheckOut) so availability sync can compute exactly
+// which days are freed vs newly claimed. Nothing touches Firestore until
+// [Salva modifiche] commits the whole draft in ONE writeBatch.
 
-    const data = snap.data();
-    if (deltaDays > 0) {
-      // Extend checkOut by one day, with overlap prevention (fresh read).
-      const newOut = addDays(data.checkOut, 1);
-      const booked = await loadBookedDates(db);
-      if (booked.has(newOut)) {
-        showAdminMessage(`${newOut} è già occupata: impossibile estendere.`, 'error');
-        return;
-      }
-      const batch = writeBatch(db);
-      batch.update(resRef, { checkOut: newOut });
-      batch.set(doc(db, 'availability', newOut), { reservationId: resId });
-      await batch.commit();
-      showAdminMessage('Durata estesa di 1 giorno.', 'success');
-      closeDayPopup();
-    } else {
-      // Shrink checkOut by one day (minimum 1-night stay).
-      const newOut = addDays(data.checkOut, -1);
-      if (newOut < data.checkIn) {
-        showAdminMessage('La durata minima è 1 giorno.', 'error');
-        return;
-      }
-      const batch = writeBatch(db);
-      batch.update(resRef, { checkOut: newOut });
-      batch.delete(doc(db, 'availability', data.checkOut));
-      await batch.commit();
-      showAdminMessage('Durata ridotta di 1 giorno.', 'success');
-      closeDayPopup();
-    }
-  } catch (err) {
-    console.error('Duration error:', err);
-    showAdminMessage('Errore aggiornamento durata.', 'error');
-  }
+function compactDateLabel(dateStr) {
+  if (!dateStr) return '-';
+  const s = new Date(dateStr + 'T12:00:00').toLocaleDateString('it-IT', {
+    weekday: 'short', day: 'numeric', month: 'short'
+  });
+  return s.replace(/\b\w/g, c => c.toUpperCase()); // 'Sab 22 Ago'
 }
 
-async function changeGuests(resId, delta) {
-  if (!resId) return;
-  try {
-    const resRef = doc(db, 'reservations', resId);
-    const snap = await getDoc(resRef);
-    if (!snap.exists()) { showAdminMessage('Prenotazione non trovata.', 'error'); return; }
+/**
+ * Pure draft validation — mirrored in /tmp/villast-draft-validate.test.mjs.
+ * bookedSet: fresh Set of occupied YYYY-MM-DD from Availability (or null while
+ * the async read is still in flight). This reservation's own old days are
+ * excluded before the overlap test, since they are the days the edit frees.
+ */
+function validateDraft(d, bookedSet) {
+  const out = { ok: false, msg: '', nights: 0, delDays: [], setDays: [] };
+  if (!d.checkIn || !d.checkOut) { out.msg = 'Indica le date di arrivo e partenza.'; return out; }
 
-    const guests = Math.max(1, (snap.data().guests || 1) + delta);
-    await writeBatch(db).update(resRef, { guests }).commit();
-    showAdminMessage(`Ospiti aggiornati: ${guests}.`, 'success');
+  const oldDays = getDatesInRange(d.oldCheckIn, d.oldCheckOut);
+  const newDays = getDatesInRange(d.checkIn, d.checkOut);
+  out.nights = newDays.length;
+  out.delDays = oldDays.filter(day => !newDays.includes(day)); // freed days
+  out.setDays = newDays.filter(day => !oldDays.includes(day)); // newly claimed days
+
+  if (out.nights < 1) { out.msg = 'Durata minima: 1 notte (la partenza deve seguire l\'arrivo).'; return out; }
+  if (!d.guests || d.guests < 1) { out.msg = 'Indica almeno 1 ospite.'; return out; }
+  if (!bookedSet) { out.msg = 'Verifica disponibilità…'; return out; }
+
+  const others = new Set([...bookedSet].filter(day => !oldDays.includes(day)));
+  const clash = newDays.find(day => others.has(day));
+  if (clash) { out.msg = `Il giorno ${formatDateDisplay(clash)} è già occupato: modifica le date.`; return out; }
+
+  out.ok = true;
+  out.msg = `Notte/i: ${out.nights}`;
+  return out;
+}
+
+function stepDraft(popup, action) {
+  const field = action.startsWith('draft-in') ? 'checkIn' : 'checkOut';
+  const delta = action.endsWith('plus') ? 1 : -1;
+  popup._draft[field] = addDays(popup._draft[field], delta);
+  renderDraftEditor(popup);
+}
+
+function renderDraftEditor(popup) {
+  const root = popup.querySelector('.pdraft');
+  const saveBtn = popup.querySelector('[data-action="draft-save"]');
+  if (!root || !popup._draft) return;
+
+  const d = popup._draft;
+  const v = validateDraft(d, popup._bookedOther);
+
+  // Small pretty steppers: compact round ± buttons, disabled at hard limits
+  // (check-in can't move past check-out, check-out can't move before it).
+  const inMinusDisabled = addDays(d.checkIn, -1) > d.checkOut;
+  const inPlusDisabled = addDays(d.checkIn, 1) > d.checkOut;
+  const outMinusDisabled = addDays(d.checkOut, -1) < d.checkIn;
+  const outPlusDisabled = addDays(d.checkOut, 1) < d.checkIn;
+
+  const guestOptions = [];
+  const guestsMax = Math.max(MAX_GUESTS, d.guests);
+  for (let g = 1; g <= guestsMax; g++) {
+    guestOptions.push(`<option value="${g}"${g === d.guests ? ' selected' : ''}>${g} ${g === 1 ? 'ospite' : 'ospiti'}</option>`);
+  }
+
+  const stepBtn = (action, label, glyph, disabled) =>
+    `<button class="pdraft__step" data-action="${action}" aria-label="${label}" ${disabled ? 'disabled' : ''}>${glyph}</button>`;
+
+  root.innerHTML = `
+    <div class="pdraft__field">
+      <label class="pdraft__label" for="pdraft-guests">Ospiti</label>
+      <select id="pdraft-guests" class="pdraft__select">${guestOptions.join('')}</select>
+    </div>
+    <div class="pdraft__field">
+      <span class="pdraft__label">Giorno arrivo</span>
+      <div class="pdraft__steprow">
+        ${stepBtn('draft-in-minus', 'Arrivo: un giorno prima', '&minus;', inMinusDisabled)}
+        <span class="pdraft__date">${compactDateLabel(d.checkIn)}</span>
+        ${stepBtn('draft-in-plus', 'Arrivo: un giorno dopo', '&plus;', inPlusDisabled)}
+      </div>
+    </div>
+    <div class="pdraft__field">
+      <span class="pdraft__label">Giorno partenza</span>
+      <div class="pdraft__steprow">
+        ${stepBtn('draft-out-minus', 'Partenza: un giorno prima', '&minus;', outMinusDisabled)}
+        <span class="pdraft__date">${compactDateLabel(d.checkOut)}</span>
+        ${stepBtn('draft-out-plus', 'Partenza: un giorno dopo', '&plus;', outPlusDisabled)}
+      </div>
+    </div>
+    <p class="pdraft__check ${v.ok ? 'pdraft__check--ok' : (v.msg.startsWith('Verifica') ? 'pdraft__check--warn' : 'pdraft__check--err')}">${escapeHtml(v.msg)}</p>`;
+
+  const differs = d.checkIn !== d.oldCheckIn || d.checkOut !== d.oldCheckOut || d.guests !== d.oldGuests;
+  if (saveBtn) saveBtn.disabled = !(v.ok && differs);
+}
+
+async function saveDraftChanges(popup, resId) {
+  if (!resId || !popup._draft) return;
+  const d = popup._draft;
+  try {
+    // Fresh overlap read at commit time (the popup snapshot may be stale if a
+    // confirm happened elsewhere meanwhile; availability set/delete is also
+    // create/delete-only in the Firestore rules as a second line of defense).
+    const booked = await loadBookedDates(db);
+    const v = validateDraft(d, booked);
+    if (!v.ok) {
+      showAdminMessage(v.msg, 'error');
+      popup._bookedOther = booked;
+      renderDraftEditor(popup);
+      return;
+    }
+
+    // ONE batch: reservation update + availability sync (free old days, claim new).
+    const batch = writeBatch(db);
+    batch.update(doc(db, 'reservations', resId), {
+      checkIn: d.checkIn,
+      checkOut: d.checkOut,
+      guests: d.guests
+    });
+    v.delDays.forEach(day => batch.delete(doc(db, 'availability', day)));
+    v.setDays.forEach(day => batch.set(doc(db, 'availability', day), { reservationId: resId }));
+    await batch.commit();
+    showAdminMessage('Modifiche salvate. Date e ospiti aggiornati.', 'success');
     closeDayPopup();
   } catch (err) {
-    console.error('Guests error:', err);
-    showAdminMessage('Errore aggiornamento ospiti.', 'error');
+    console.error('Save draft error:', err);
+    showAdminMessage('Impossibile salvare: alcune date risultano già occupate.', 'error');
   }
 }
 
@@ -593,6 +723,12 @@ function showDashboard() {
   showEl(document.getElementById('dashboard'));
   startReservationsListener();
   initPanelSwitching();
+  // Calendar is the primary/default panel (admin.html marks it active):
+  // initialize it right away, not only after a sidebar click.
+  const activeLink = document.querySelector('.sidebar-link[data-panel].active');
+  if (activeLink && activeLink.dataset.panel === 'calendar' && !adminCalendarInstance) {
+    initAdminCalendarSection();
+  }
 }
 
 function showLogin() {

@@ -18,6 +18,9 @@
 
   <!-- Main Styles -->
   <link rel="stylesheet" href="css/admin.css">
+
+  <!-- Day popup styles (admin-popup.css) -->
+  <link rel="stylesheet" href="css/admin-popup.css">
 </head>
 <body>
 
@@ -56,8 +59,22 @@
         <span class="logo-text">Rifugio Tavolara</span>
       </div>
       <nav class="sidebar-nav">
-        <!-- Dashboard / Prenotazioni -->
-        <a href="#" class="sidebar-link active" data-panel="reservations">
+        <span class="nav-section-label">Aree</span>
+
+        <!-- Calendario — primary view -->
+        <a href="#" class="sidebar-link active" data-panel="calendar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <text>Calendario</text>
+          <span class="sidebar-link-tag">Principale</span>
+        </a>
+
+        <!-- Prenotazioni -->
+        <a href="#" class="sidebar-link" data-panel="reservations">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
             <line x1="16" y1="2" x2="16" y2="6"></line>
@@ -71,16 +88,6 @@
             <path d="M16 18h.01"></path>
           </svg>
           <text>Prenotazioni</text>
-        </a>
-        <!-- Calendario -->
-        <a href="#" class="sidebar-link" data-panel="calendar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
-            <line x1="16" y1="2" x2="16" y2="6"></line>
-            <line x1="8" y1="2" x2="8" y2="6"></line>
-            <line x1="3" y1="10" x2="21" y2="10"></line>
-          </svg>
-          <text>Calendario</text>
         </a>
       </nav>
       <div class="sidebar-footer">
@@ -107,8 +114,8 @@
       <!-- Global Admin Message -->
       <div id="admin-message" style="display:none" class="admin-msg"></div>
 
-      <!-- Reservations Panel -->
-      <section id="reservations-panel" class="dash-panel">
+      <!-- Reservations Panel (secondary, hidden by default) -->
+      <section id="reservations-panel" class="dash-panel" style="display:none">
         <div class="panel-header">
           <h2>Richieste di Prenotazione</h2>
           <div class="panel-stats">
@@ -151,25 +158,34 @@
         </div>
       </section>
 
-      <!-- Calendar Panel (hidden by default) -->
-      <section id="calendar-panel" class="dash-panel" style="display:none">
+      <!-- Calendar Panel (primary view) -->
+      <section id="calendar-panel" class="dash-panel">
         <div class="panel-header">
-          <h2>Gestione Disponibilità</h2>
+          <div class="panel-title">
+            <h2>Calendario Disponibilità</h2>
+            <p class="panel-sub">Gestione giorno per giorno di blocchi, prenotazioni e richieste in attesa</p>
+          </div>
         </div>
         <div class="calendar-layout">
           <div class="calendar-instructions">
-            <p>Clicca su un giorno per gestirlo: blocca manualmente una data libera (non disponibile per gli ospiti), modifica durata o ospiti di una prenotazione confermata, elimina un blocco manuale, oppure conferma o rifiuta le richieste in attesa che si sovrappongono a quel giorno.</p>
-            <p>Le date occupate da prenotazioni <strong>confermate</strong> e dai blocchi manuali sono gestite qui e nella sezione Prenotazioni.</p>
             <!-- Calendar container -->
             <div id="admin-calendar"></div>
           </div>
-          
-          <div class="calendar-legend">
-            <h3>Legenda</h3>
-            <div class="legend-item"><span class="legend-dot legend-dot--available"></span> Data disponibile</div>
-            <div class="legend-item"><span class="legend-dot legend-dot--admin-blocked"></span> Blocco manuale admin</div>
-            <div class="legend-item"><span class="legend-dot legend-dot--guest-confirmed"></span> Prenotazione confermata</div>
-            <div class="legend-item"><span class="legend-dot legend-dot--pending"></span> Richiesta in attesa</div>
+
+          <div class="calendar-below">
+            <div class="calendar-help">
+              <h3>Come funziona</h3>
+              <p>Clicca su un giorno per gestirlo: blocca manualmente una data libera (non disponibile per gli ospiti), modifica durata o ospiti di una prenotazione confermata, elimina un blocco manuale, oppure conferma o rifiuta le richieste in attesa che si sovrappongono a quel giorno.</p>
+              <p>Le date occupate da prenotazioni <strong>confermate</strong> e dai blocchi manuali sono gestite qui e nella sezione Prenotazioni.</p>
+            </div>
+
+            <div class="calendar-legend">
+              <h3>Legenda</h3>
+              <div class="legend-item"><span class="legend-dot legend-dot--available"></span> Data disponibile</div>
+              <div class="legend-item"><span class="legend-dot legend-dot--admin-blocked"></span> Blocco manuale admin</div>
+              <div class="legend-item"><span class="legend-dot legend-dot--guest-confirmed"></span> Prenotazione confermata</div>
+              <div class="legend-item"><span class="legend-dot legend-dot--pending"></span> Richiesta in attesa</div>
+            </div>
           </div>
         </div>
 

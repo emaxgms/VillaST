@@ -261,36 +261,88 @@ input, select {
   flex-grow: 1;
 }
 
+.nav-section-label {
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-muted);
+  opacity: 0.75;
+  padding: 0 0.25rem 0.5rem;
+}
+
 .sidebar-link {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  padding: 0.75rem 1rem;
-  border-radius: var(--radius);
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  border: 1px solid transparent;
   color: var(--text-muted);
   font-size: 0.9375rem;
   font-weight: 500;
-  transition: all var(--transition);
+  transition: color var(--transition), background var(--transition),
+    border-color var(--transition), box-shadow var(--transition),
+    transform 0.15s ease;
 }
 
 .sidebar-link svg {
-  width: 16px;
-  height: 16px;
-  fill: currentColor;
-  opacity: 0.7;
+  width: 17px;
+  height: 17px;
+  fill: none;
+  opacity: 0.75;
+  flex-shrink: 0;
+  transition: opacity var(--transition), color var(--transition);
 }
 
 .sidebar-link:hover {
   color: var(--text);
-  background: rgba(255, 255, 255, 0.03);
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border);
+  transform: translateY(-1px);
 }
 
+/* Active: terra-tinted pill with a soft glow (primary area) */
 .sidebar-link.active {
-  background: var(--surface-2);
   color: var(--text);
+  background: linear-gradient(135deg, rgba(193, 105, 79, 0.18), rgba(193, 105, 79, 0.07));
+  border-color: rgba(193, 105, 79, 0.35);
+  box-shadow: 0 0 0 1px rgba(193, 105, 79, 0.1), 0 8px 24px rgba(193, 105, 79, 0.14);
 }
 .sidebar-link.active svg {
   opacity: 1;
+  color: var(--terra);
+  filter: drop-shadow(0 0 6px rgba(193, 105, 79, 0.5));
+}
+
+/* Edge indicator bar (aligns with the 1.5rem sidebar padding) */
+.sidebar-link.active::before {
+  content: '';
+  position: absolute;
+  left: -1.5rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 58%;
+  border-radius: 0 3px 3px 0;
+  background: var(--terra);
+  box-shadow: 0 0 10px rgba(193, 105, 79, 0.65);
+}
+
+/* 'Principale' tag on the primary area link */
+.sidebar-link-tag {
+  margin-left: auto;
+  font-size: 0.55rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #E5A08B;
+  background: rgba(193, 105, 79, 0.15);
+  border: 1px solid rgba(193, 105, 79, 0.3);
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  white-space: nowrap;
 }
 
 .sidebar-footer {
@@ -416,6 +468,15 @@ input, select {
 
 .panel-header h2 {
   font-size: 1.25rem;
+}
+
+.panel-title h2 {
+  margin-bottom: 0.25rem;
+}
+
+.panel-sub {
+  color: var(--text-muted);
+  font-size: 0.8125rem;
 }
 
 .panel-stats {
@@ -619,19 +680,40 @@ input, select {
   background: rgba(248, 113, 113, 0.1);
 }
 
+/* Calendar view: big full-width calendar on top, help + legend below */
 .calendar-layout {
-  display: grid;
-  grid-template-columns: 1fr 300px;
-  gap: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
   padding: 2rem;
 }
 
-.calendar-instructions p {
+.calendar-below {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 1.5rem;
+  align-items: start;
+}
+
+.calendar-help h3 {
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
   color: var(--text-muted);
-  margin-bottom: 2rem;
+  margin-bottom: 0.75rem;
+}
+
+.calendar-help p {
+  color: var(--text-muted);
+  margin-bottom: 1rem;
   font-size: 0.9375rem;
 }
-.calendar-instructions strong {
+
+.calendar-help p:last-child {
+  margin-bottom: 0;
+}
+
+.calendar-help strong {
   color: var(--text);
   font-weight: 500;
 }
@@ -751,9 +833,85 @@ span.flatpickr-weekday {
 }
 
 @media (max-width: 900px) {
-  .calendar-layout {
+  .calendar-below {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
+  }
+
+  /* ── Reservations table → stacked cards (no horizontal scroll) ── */
+  .table-wrapper {
+    overflow: visible;
+  }
+
+  #reservations-table thead {
+    display: none;
+  }
+
+  #reservations-table,
+  #reservations-table tbody {
+    display: block;
+  }
+
+  #reservations-table tbody tr {
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    background: var(--surface-2);
+    padding: 0.25rem 1.25rem;
+    margin-bottom: 1rem;
+  }
+  #reservations-table tbody tr:nth-child(even) {
+    background: var(--surface-2);
+  }
+  #reservations-table tbody tr:hover {
+    background: var(--surface-2);
+  }
+
+  #reservations-table td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.75rem 0;
+    border-bottom: 1px dashed var(--border);
+  }
+  #reservations-table td:last-child {
+    border-bottom: none;
+  }
+
+  /* Labeled rows via data-label (set on each <td> in the markup) */
+  #reservations-table td::before {
+    content: attr(data-label);
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--text-muted);
+    flex-shrink: 0;
+  }
+
+  .action-cell {
+    display: flex !important;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+  }
+
+  .btn-action {
+    min-height: 40px;
+    min-width: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.5rem 0.9rem;
+  }
+
+  #reservations-table tr.empty-row td {
+    display: block;
+    text-align: center;
+    border-bottom: none;
+  }
+  #reservations-table tr.empty-row td::before {
+    content: none;
   }
 }
 
@@ -789,6 +947,12 @@ span.flatpickr-weekday {
   .sidebar-link text {
     display: none;
   }
+  .sidebar-link .sidebar-link-tag {
+    display: none;
+  }
+  .sidebar-link.active::before {
+    display: none;
+  }
   
   .sidebar-footer {
     margin-top: 0;
@@ -810,7 +974,7 @@ span.flatpickr-weekday {
   }
   
   .action-btns {
-    flex-direction: column;
+    flex-wrap: wrap;
   }
 }
 

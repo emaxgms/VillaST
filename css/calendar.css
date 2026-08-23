@@ -163,8 +163,7 @@
 
 .calendar-instructions {
   width: 100%;
-  max-width: 720px; /* big admin calendar column (was 400px) */
-  margin: 0 auto;
+  max-width: none; /* full-width admin calendar */
 }
 
 .calendar-instructions .flatpickr-calendar.inline {
@@ -204,9 +203,9 @@
 
 /* Big day cells with a defined 1px grid */
 .calendar-instructions .flatpickr-day {
-  height: 58px !important;
-  line-height: 56px !important;
-  font-size: 1.05rem !important;
+  height: 64px !important;
+  line-height: 62px !important;
+  font-size: 1.1rem !important;
   border-radius: 10px !important;
   border: 1px solid rgba(255, 255, 255, 0.07) !important;
   margin: 2px 0 !important;
