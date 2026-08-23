@@ -1,0 +1,119 @@
+/* ============================================================
+   VillaST admin — day popup DRAFT EDITOR (confirmed reservations)
+   New styles only; linked at runtime by js/admin.js (ensurePopupStylesheet).
+   Card theme: white (#fff), text #1A1D27, muted #6B7089, terra accent.
+   ============================================================ */
+
+.pdraft {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin: 0.6rem 0 0.5rem;
+}
+
+.pdraft__field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.pdraft__label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6B7089;
+}
+
+/* Ospiti: compact select, not steppers */
+.pdraft__select {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 1.5px solid rgba(26, 29, 39, 0.15);
+  border-radius: 10px;
+  background: #fff;
+  color: #1A1D27;
+  font-size: 0.875rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+}
+.pdraft__select:hover,
+.pdraft__select:focus {
+  border-color: #C1694F;
+  outline: none;
+}
+
+/* Small pretty steppers for check-in / check-out */
+.pdraft__steprow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.pdraft__step {
+  width: 30px;
+  height: 30px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  border: 1.5px solid rgba(26, 29, 39, 0.15);
+  background: #fff;
+  color: #1A1D27;
+  font-size: 1.05rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  transition: border-color 0.15s ease, color 0.15s ease,
+              background 0.15s ease, transform 0.15s ease;
+}
+.pdraft__step:hover:not(:disabled) {
+  border-color: #C1694F;
+  color: #C1694F;
+  background: rgba(193, 105, 79, 0.08);
+  transform: scale(1.08);
+}
+.pdraft__step:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.pdraft__date {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1A1D27;
+  text-align: center;
+  min-width: 5.6rem;
+}
+
+/* Live validation line */
+.pdraft__check {
+  margin: 0.1rem 0 0;
+  padding: 0.45rem 0.7rem;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.pdraft__check--ok { background: rgba(46, 160, 102, 0.1); color: #1F8A55; }
+.pdraft__check--err { background: rgba(196, 69, 76, 0.1); color: #C4454C; }
+.pdraft__check--warn { background: rgba(196, 160, 69, 0.12); color: #A07C2E; }
+
+/* Disabled primary button (Save is grayed out until draft differs AND valid) */
+.poppover__btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  border-color: rgba(26, 29, 39, 0.12);
+  background: #F2F3F6;
+  color: #9AA0B5;
+}
+.poppover__btn:disabled:hover {
+  border-color: rgba(26, 29, 39, 0.12);
+  color: #9AA0B5;
+  background: #F2F3F6;
+  transform: none;
+}
