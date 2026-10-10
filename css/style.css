@@ -920,33 +920,140 @@ a {
 /* ---------------------------------------------------------------
    11. DESCRIPTION / ABOUT SECTION
    --------------------------------------------------------------- */
-.about-grid {
+/* --- 19.4 The house, explained: space list + photo collage --- */
+.about-intro {
+  max-width: 64ch;
+  margin: 0 auto var(--space-48);
+  text-align: center;
+  color: var(--neutral-600);
+}
+
+.layout-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--space-64);
+  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  gap: var(--space-48);
   align-items: start;
 }
 
-.about-content p {
-  margin-bottom: var(--space-16);
+.layout-title {
+  font-family: var(--font-display);
+  font-size: 1.6rem;
+  color: var(--color-sea);
+  margin-bottom: var(--space-20);
 }
 
-.about-image {
+.layout-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: var(--space-12);
+}
+
+.layout-item {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr);
+  column-gap: var(--space-16);
+  padding: var(--space-16) var(--space-20);
+  background: var(--color-white);
+  border: 1px solid rgba(232, 213, 183, 0.5);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 2px 10px rgba(26, 60, 94, 0.04);
+  transition: transform var(--duration-normal) var(--ease-out),
+              box-shadow var(--duration-normal) var(--ease-out),
+              border-color var(--duration-normal) var(--ease-out);
+}
+
+.layout-item:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-sand);
+  box-shadow: var(--shadow-md);
+}
+
+.layout-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: linear-gradient(160deg, rgba(232, 213, 183, 0.45), rgba(255, 255, 255, 0.9));
+  color: var(--color-terra);
+}
+
+.layout-icon svg {
+  width: 24px;
+  height: 24px;
+}
+
+.layout-item h4 {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  color: var(--color-sea);
+  margin-bottom: var(--space-4);
+}
+
+.layout-item p {
+  margin: 0;
+  font-size: 0.9rem;
+  line-height: 1.55;
+  color: var(--neutral-600);
+}
+
+.layout-tag {
+  display: inline-block;
+  margin-top: var(--space-8);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--color-terra);
+}
+
+.layout-note {
+  margin: var(--space-20) 0 0;
+  text-align: center;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--neutral-500);
+}
+
+.layout-photos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-12);
+}
+
+.layout-photo {
+  margin: 0;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: var(--shadow-lg);
-  aspect-ratio: 4/5;
+  box-shadow: var(--shadow-md);
+  aspect-ratio: 4 / 3;
 }
 
-.about-image img {
+.layout-photo:first-child {
+  grid-column: 1 / -1;
+  aspect-ratio: 16 / 9;
+}
+
+.layout-photo img {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  display: block;
   transition: transform var(--duration-glacial) var(--ease-out);
 }
 
-.about-image:hover img {
-  transform: scale(1.03);
+.layout-photo:hover img {
+  transform: scale(1.04);
+}
+
+@media (max-width: 1023px) {
+  .layout-grid {
+    grid-template-columns: 1fr;
+    gap: var(--space-32);
+  }
 }
 
 /* ---------------------------------------------------------------
@@ -1947,11 +2054,6 @@ a {
     padding: var(--space-12);
   }
 
-  .about-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-32);
-  }
-
   .amenities-grid {
     grid-template-columns: 1fr;
   }
@@ -2064,16 +2166,6 @@ a {
 
   .hero__title {
     font-size: clamp(2.5rem, 6vw, 4rem);
-  }
-
-  .about-grid {
-    grid-template-columns: 1fr;
-    gap: var(--space-48);
-  }
-
-  .about-image {
-    max-height: 400px;
-    aspect-ratio: 16/9;
   }
 
   .amenities-grid {
@@ -2575,15 +2667,21 @@ html.js [data-aos].is-visible {
 }
 
 .section--cream {
+  /* Flat band at each edge: the tint used to reach the top edge and cut a
+     visible line through the stat panel's shadow. */
   background:
-    radial-gradient(900px 460px at 8% -12%, rgba(232, 213, 183, 0.55), transparent 68%),
-    radial-gradient(760px 420px at 96% 4%, rgba(214, 228, 240, 0.45), transparent 70%),
+    linear-gradient(180deg, var(--color-cream) 0, rgba(250, 247, 242, 0) 150px),
+    linear-gradient(0deg, var(--color-cream) 0, rgba(250, 247, 242, 0) 120px),
+    radial-gradient(900px 460px at 8% 30%, rgba(232, 213, 183, 0.5), transparent 68%),
+    radial-gradient(760px 420px at 96% 40%, rgba(214, 228, 240, 0.45), transparent 70%),
     var(--color-cream);
 }
 
 .section--white {
   background:
-    radial-gradient(820px 420px at 88% -14%, rgba(242, 222, 214, 0.5), transparent 68%),
+    linear-gradient(180deg, var(--color-white) 0, rgba(255, 255, 255, 0) 150px),
+    linear-gradient(0deg, var(--color-white) 0, rgba(255, 255, 255, 0) 120px),
+    radial-gradient(820px 420px at 88% 35%, rgba(242, 222, 214, 0.5), transparent 68%),
     var(--color-white);
 }
 
@@ -2631,6 +2729,16 @@ html.js [data-aos].is-visible {
   );
 }
 
+/* Each wave is filled with the colour of the section it merges into: the bottom
+   one was white over a cream section, which is what made it look detached. */
+.wave-divider {
+  color: var(--color-white);
+}
+
+.wave-divider--bottom {
+  color: var(--color-cream);
+}
+
 /* nav legibility: white links sit on whatever the photo happens to be */
 .hero::before {
   content: '';
@@ -2658,8 +2766,18 @@ html.js [data-aos].is-visible {
 }
 
 .hero__eyebrow {
-  font-size: 0.74rem;
-  letter-spacing: 0.36em;
+  /* Was terracotta directly on a photo: unreadable. Now a glass pill. */
+  width: fit-content;
+  font-size: 0.72rem;
+  letter-spacing: 0.26em;
+  padding: var(--space-8) var(--space-20);
+  border-radius: var(--radius-full);
+  background: rgba(10, 24, 38, 0.5);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  color: var(--color-white);
+  text-shadow: 0 1px 10px rgba(0, 0, 0, 0.45);
 }
 
 .hero__subtitle {
@@ -2704,10 +2822,6 @@ html.js [data-aos].is-visible {
 }
 
 /* --- 19.3 Cards: consistent big radius, one shadow language --- */
-.about-image {
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-lg);
-}
 
 .review-excerpt {
   border-radius: var(--radius-lg);
@@ -2863,6 +2977,22 @@ html.js [data-aos].is-visible {
 @media (max-width: 767px) {
   .amenities-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+/* Centred wrap instead of a grid: with 5 tiles the odd one out used to sit
+   alone on the left of the last row. */
+@media (max-width: 1023px) {
+  .stat-bar__inner {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .stat-item {
+    /* --space-6 does not exist: the invalid calc silently dropped the whole
+       declaration and the tiles fell back to auto width (3 per row). */
+    flex: 0 1 calc(50% - var(--space-12) / 2);
   }
 }
 
