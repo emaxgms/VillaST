@@ -849,12 +849,14 @@ a {
   position: relative;
   z-index: var(--z-sticky);
   margin-top: -64px;
-  padding: 0 var(--space-16);
+  padding: 0 clamp(var(--space-16), 2vw, var(--space-24));
 }
 
 /* A real grid: gap is structural, so labels can never end up glued together
    (the old flex row collapsed to a 0px gap below ~1024px). auto-fit keeps the
    last row balanced — no empty cell — at every width. */
+/* Not a .container: it is a card, and .container's max-width (1400px at >=1440)
+   silently beat this one, stretching the panel across the page. */
 .stat-bar__inner {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
