@@ -1,0 +1,8 @@
+# https://villa-serenita-san-teodoro.web.app/robots.txt
+# The admin dashboard is login-gated and has no business in the index.
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin.html
+
+Sitemap: https://villa-serenita-san-teodoro.web.app/sitemap.xml

@@ -21,3 +21,9 @@ Thumbs.db
 .vscode/settings.json
 *.suo
 *.user
+
+# Local scratch: never part of the deploy (firebase.json also ignores these)
+task/
+test-*.html
+test-*.js
+wb-*.json

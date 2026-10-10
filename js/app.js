@@ -1,19 +1,42 @@
 /**
- * app.js — Landing page animations and interactivity
+ * app.js — Landing page behaviour
  * VillaST — San Teodoro, Sardegna
+ *
+ * Two languages ship as two URLs (/ and /en/, see tools/build-en.mjs), so there is
+ * no client-side language toggle here any more: the active language is decided by
+ * `body.lang-en`, which the build sets on the English page.
  */
 
-// ─── AOS Init ──────────────────────────────────────────────────────────────
+// ─── Reveal on scroll ──────────────────────────────────────────────────────
+// Replaces the AOS library (it was 2 CDN requests + 900ms animations for this).
+// The markup API stays `data-aos` / `data-aos-delay`; the hidden start state is
+// scoped to `html.js`, set by the inline script in <head>, so a dead JS bundle
+// degrades to "everything visible" instead of a blank page.
 
-if (typeof AOS !== 'undefined') {
-  AOS.init({
-    duration: 900,
-    easing: 'ease-out-cubic',
-    once: true,
-    offset: 80,
-    disable: 'phone' // disable on small phones for performance
-  });
+function initReveal() {
+  const items = Array.from(document.querySelectorAll('[data-aos]'));
+  if (items.length === 0) return;
+
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (reduceMotion || !('IntersectionObserver' in window)) {
+    items.forEach(el => el.classList.add('is-visible'));
+    return;
+  }
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (!entry.isIntersecting) return;
+      const el = entry.target;
+      const delay = parseInt(el.dataset.aosDelay || '0', 10) || 0;
+      window.setTimeout(() => el.classList.add('is-visible'), delay);
+      observer.unobserve(el);
+    });
+  }, { rootMargin: '0px 0px -8% 0px', threshold: 0.08 });
+
+  items.forEach(el => observer.observe(el));
 }
+
+initReveal();
 
 // ─── Navbar scroll effect ──────────────────────────────────────────────────
 
@@ -21,32 +44,47 @@ const navbar = document.getElementById('navbar');
 
 function handleNavbarScroll() {
   if (!navbar) return;
-  if (window.scrollY > 50) {
-    navbar.classList.add('navbar--scrolled');
-  } else {
-    navbar.classList.remove('navbar--scrolled');
-  }
+  navbar.classList.toggle('navbar--scrolled', window.scrollY > 50);
 }
 
 window.addEventListener('scroll', handleNavbarScroll, { passive: true });
-handleNavbarScroll(); // Run on load
+handleNavbarScroll();
 
-// ─── Hero parallax (JS override for iOS Safari compatibility) ─────────────
+// ─── Sticky booking bar ────────────────────────────────────────────────────
+// Visible after the hero, parked while the booking form or the footer is on screen
+// (the footer holds the WhatsApp CTA, the bar must not sit on top of it).
 
-const heroSection = document.getElementById('hero-section');
+function initBookingBar() {
+  const bar = document.getElementById('booking-bar');
+  const hero = document.getElementById('hero-section');
+  if (!bar || !hero) return;
 
-// Detect iOS/Safari to skip CSS background-attachment:fixed
-const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
-const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
+  const parked = [document.getElementById('reservation'), document.querySelector('.footer')]
+    .filter(Boolean);
+  let ticking = false;
 
-if (heroSection && !isIOS && !isSafari) {
-  // Only apply JS parallax on non-iOS browsers
-  // CSS background-attachment:fixed handles the rest
-  window.addEventListener('scroll', () => {
-    const scrollY = window.scrollY;
-    heroSection.style.backgroundPositionY = `calc(50% + ${scrollY * 0.35}px)`;
-  }, { passive: true });
+  function update() {
+    ticking = false;
+    const pastHero = hero.getBoundingClientRect().bottom <= 0;
+    const overlaps = parked.some(el => {
+      const rect = el.getBoundingClientRect();
+      return rect.top < window.innerHeight * 0.75 && rect.bottom > 0;
+    });
+    bar.classList.toggle('is-visible', pastHero && !overlaps);
+  }
+
+  function schedule() {
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(update);
+  }
+
+  window.addEventListener('scroll', schedule, { passive: true });
+  window.addEventListener('resize', schedule, { passive: true });
+  update();
 }
+
+initBookingBar();
 
 // ─── Mobile menu ───────────────────────────────────────────────────────────
 
@@ -54,6 +92,12 @@ const navToggle = document.querySelector('.nav-toggle');
 const mobileMenu = document.getElementById('mobile-menu');
 
 if (navToggle && mobileMenu) {
+  function closeMenu() {
+    mobileMenu.classList.remove('active');
+    navToggle.setAttribute('aria-expanded', 'false');
+    document.body.style.overflow = '';
+  }
+
   navToggle.addEventListener('click', () => {
     const isOpen = mobileMenu.classList.toggle('active');
     navToggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
@@ -63,11 +107,7 @@ if (navToggle && mobileMenu) {
 
   // Close mobile menu when a link is clicked
   mobileMenu.querySelectorAll('a').forEach(link => {
-    link.addEventListener('click', () => {
-      mobileMenu.classList.remove('active');
-      navToggle.setAttribute('aria-expanded', 'false');
-      document.body.style.overflow = '';
-    });
+    link.addEventListener('click', closeMenu);
   });
 
   // Close on outside click
@@ -77,9 +117,7 @@ if (navToggle && mobileMenu) {
       !mobileMenu.contains(e.target) &&
       !navToggle.contains(e.target)
     ) {
-      mobileMenu.classList.remove('active');
-      navToggle.setAttribute('aria-expanded', 'false');
-      document.body.style.overflow = '';
+      closeMenu();
     }
   });
 }
@@ -89,7 +127,7 @@ if (navToggle && mobileMenu) {
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
   anchor.addEventListener('click', (e) => {
     const targetId = anchor.getAttribute('href').slice(1);
-    const target = document.getElementById(targetId);
+    const target = targetId && document.getElementById(targetId);
     if (!target) return;
     e.preventDefault();
     target.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -98,54 +136,17 @@ document.querySelectorAll('a[href^="#"]').forEach(anchor => {
   });
 });
 
-// ─── Language toggle ───────────────────────────────────────────────────────
-
-const langToggle = document.querySelector('.lang-toggle');
-
-function applyLanguage(lang) {
-  if (lang === 'en') {
-    document.body.classList.add('lang-en');
-    if (langToggle) langToggle.textContent = 'EN | IT';
-  } else {
-    document.body.classList.remove('lang-en');
-    if (langToggle) langToggle.textContent = 'IT | EN';
-  }
-
-  // Localize placeholders (can't use .it/.en spans inside an input attribute)
-  document.querySelectorAll('[data-placeholder-it]').forEach(el => {
-    el.placeholder = lang === 'en' ? (el.dataset.placeholderEn || '') : (el.dataset.placeholderIt || '');
-  });
-}
-
-// Restore language preference
-const savedLang = localStorage.getItem('villa-lang') || 'it';
-applyLanguage(savedLang);
-
-if (langToggle) {
-  langToggle.addEventListener('click', () => {
-    const currentLang = document.body.classList.contains('lang-en') ? 'en' : 'it';
-    const newLang = currentLang === 'en' ? 'it' : 'en';
-    applyLanguage(newLang);
-    localStorage.setItem('villa-lang', newLang);
-  });
-}
-
 // ─── Number counter animation ──────────────────────────────────────────────
 
 function animateCounter(el, target, duration = 1500) {
   const startTime = performance.now();
-  const startValue = 0;
 
   function update(currentTime) {
-    const elapsed = currentTime - startTime;
-    const progress = Math.min(elapsed / duration, 1);
+    const progress = Math.min((currentTime - startTime) / duration, 1);
     // Ease out cubic
     const eased = 1 - Math.pow(1 - progress, 3);
-    const current = Math.round(startValue + (target - startValue) * eased);
-    el.textContent = current + (el.dataset.suffix || '');
-    if (progress < 1) {
-      requestAnimationFrame(update);
-    }
+    el.textContent = Math.round(target * eased) + (el.dataset.suffix || '');
+    if (progress < 1) requestAnimationFrame(update);
   }
 
   requestAnimationFrame(update);
@@ -153,13 +154,12 @@ function animateCounter(el, target, duration = 1500) {
 
 const counterObserver = new IntersectionObserver((entries) => {
   entries.forEach(entry => {
-    if (entry.isIntersecting) {
-      const el = entry.target;
-      const target = parseInt(el.dataset.target, 10);
-      if (!isNaN(target)) {
-        animateCounter(el, target);
-        counterObserver.unobserve(el);
-      }
+    if (!entry.isIntersecting) return;
+    const el = entry.target;
+    const target = parseInt(el.dataset.target, 10);
+    if (!isNaN(target)) {
+      animateCounter(el, target);
+      counterObserver.unobserve(el);
     }
   });
 }, { threshold: 0.5 });
@@ -169,21 +169,22 @@ document.querySelectorAll('.stat-counter').forEach(el => {
 });
 
 // ─── Gallery Lightbox ──────────────────────────────────────────────────────
+// Styling lives in css/style.css (.lightbox*) so it caches with the rest.
 
 const galleryImages = Array.from(document.querySelectorAll('.gallery__item img'));
 
 if (galleryImages.length > 0) {
-  // Create lightbox elements
   const lightbox = document.createElement('div');
   lightbox.id = 'lightbox';
+  lightbox.className = 'lightbox';
   lightbox.setAttribute('role', 'dialog');
   lightbox.setAttribute('aria-modal', 'true');
-  lightbox.setAttribute('aria-label', 'Galleria immagini');
+  lightbox.setAttribute('aria-label', 'Gallery');
   lightbox.innerHTML = `
     <div class="lightbox__overlay"></div>
-    <button class="lightbox__close" aria-label="Chiudi">&times;</button>
-    <button class="lightbox__prev" aria-label="Precedente">&#8249;</button>
-    <button class="lightbox__next" aria-label="Successiva">&#8250;</button>
+    <button class="lightbox__close" aria-label="Close">&times;</button>
+    <button class="lightbox__prev" aria-label="Previous">&#8249;</button>
+    <button class="lightbox__next" aria-label="Next">&#8250;</button>
     <div class="lightbox__content">
       <img class="lightbox__img" src="" alt="">
       <p class="lightbox__caption"></p>
@@ -191,76 +192,24 @@ if (galleryImages.length > 0) {
   `;
   document.body.appendChild(lightbox);
 
-  // Add lightbox styles programmatically
-  const lbStyle = document.createElement('style');
-  lbStyle.textContent = `
-    #lightbox {
-      display: none;
-      position: fixed;
-      inset: 0;
-      z-index: 9999;
-      align-items: center;
-      justify-content: center;
-    }
-    #lightbox.lightbox--open { display: flex; }
-    .lightbox__overlay {
-      position: absolute;
-      inset: 0;
-      background: rgba(0,0,0,0.92);
-    }
-    .lightbox__content {
-      position: relative;
-      z-index: 1;
-      max-width: 90vw;
-      max-height: 90vh;
-      text-align: center;
-    }
-    .lightbox__img {
-      max-width: 90vw;
-      max-height: 80vh;
-      object-fit: contain;
-      border-radius: 8px;
-    }
-    .lightbox__caption {
-      color: rgba(255,255,255,0.7);
-      margin-top: 0.75rem;
-      font-size: 0.9rem;
-    }
-    .lightbox__close, .lightbox__prev, .lightbox__next {
-      position: absolute;
-      z-index: 2;
-      background: rgba(255,255,255,0.1);
-      border: 1px solid rgba(255,255,255,0.2);
-      color: white;
-      cursor: pointer;
-      border-radius: 50%;
-      width: 48px;
-      height: 48px;
-      font-size: 1.5rem;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: background 0.2s;
-    }
-    .lightbox__close:hover, .lightbox__prev:hover, .lightbox__next:hover {
-      background: rgba(193,105,79,0.7);
-    }
-    .lightbox__close { top: 1rem; right: 1rem; border-radius: 50%; }
-    .lightbox__prev { left: 1rem; top: 50%; transform: translateY(-50%); }
-    .lightbox__next { right: 1rem; top: 50%; transform: translateY(-50%); }
-  `;
-  document.head.appendChild(lbStyle);
-
   const lbImg = lightbox.querySelector('.lightbox__img');
   const lbCaption = lightbox.querySelector('.lightbox__caption');
   let currentIndex = 0;
+  let lastFocused = null;
 
-  function openLightbox(index) {
+  function show(index) {
     currentIndex = index;
     const img = galleryImages[index];
-    lbImg.src = img.src;
-    lbImg.alt = img.alt;
-    lbCaption.textContent = img.alt || '';
+    // data-alt-en is the English alt text; build-en.mjs makes `alt` itself the
+    // active-language one, so the lightbox just reuses it.
+    lbImg.src = img.getAttribute('src');
+    lbImg.alt = img.getAttribute('alt') || '';
+    lbCaption.textContent = img.getAttribute('alt') || '';
+  }
+
+  function openLightbox(index) {
+    lastFocused = document.activeElement;
+    show(index);
     lightbox.classList.add('lightbox--open');
     document.body.style.overflow = 'hidden';
     lightbox.querySelector('.lightbox__close').focus();
@@ -269,17 +218,13 @@ if (galleryImages.length > 0) {
   function closeLightbox() {
     lightbox.classList.remove('lightbox--open');
     document.body.style.overflow = '';
+    if (lastFocused) lastFocused.focus();
   }
 
   function navigate(dir) {
-    currentIndex = (currentIndex + dir + galleryImages.length) % galleryImages.length;
-    const img = galleryImages[currentIndex];
-    lbImg.src = img.src;
-    lbImg.alt = img.alt;
-    lbCaption.textContent = img.alt || '';
+    show((currentIndex + dir + galleryImages.length) % galleryImages.length);
   }
 
-  // Make gallery images clickable
   galleryImages.forEach((img, index) => {
     img.style.cursor = 'zoom-in';
     img.addEventListener('click', () => openLightbox(index));
