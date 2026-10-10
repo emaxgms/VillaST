@@ -23,7 +23,8 @@
       "test-*.js",
       "wb-*.json",
       "package.json",
-      ".github/**"
+      ".github/**",
+      "villa/**"
     ],
     "headers": [
       {
