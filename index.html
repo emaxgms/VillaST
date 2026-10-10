@@ -3,16 +3,96 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Rifugio Tavolara — San Teodoro, Sardegna</title>
-  <meta name="description" content="Rifugio Tavolara: il tuo rifugio esclusivo in Sardegna. Appartamento con 2 camere da letto, giardino, spiaggia privata e terrazza a San Teodoro. Prenota il tuo soggiorno.">
+
+  <!-- Reveal animations only start hidden when JS runs, so a blocked bundle leaves content visible -->
+  <script>document.documentElement.classList.add('js');</script>
+
+  <title>Casa Vacanze San Teodoro, Sardegna — Rifugio Tavolara</title>
+  <meta name="description" content="Appartamento per 4 ospiti nel centro di San Teodoro: 2 camere, giardino privato, terrazza e parcheggio gratuito. Cala d&rsquo;Ambra a 1,5 km. Prenota diretto con l&rsquo;host.">
+
+  <!-- One URL per language: / = IT, /en/ = EN. Both are generated from this file by tools/build-en.mjs -->
+  <link rel="canonical" href="https://villa-serenita-san-teodoro.web.app/">
+  <link rel="alternate" hreflang="it" href="https://villa-serenita-san-teodoro.web.app/">
+  <link rel="alternate" hreflang="en" href="https://villa-serenita-san-teodoro.web.app/en/">
+  <link rel="alternate" hreflang="x-default" href="https://villa-serenita-san-teodoro.web.app/">
+
+  <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1">
+  <meta name="theme-color" content="#1A3C5E">
+  <meta name="geo.region" content="IT-88">
+  <meta name="geo.placename" content="San Teodoro">
+
+  <!-- Social / chat preview -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Rifugio Tavolara">
+  <meta property="og:locale" content="it_IT">
+  <meta property="og:locale:alternate" content="en_GB">
+  <meta property="og:title" content="Casa Vacanze San Teodoro, Sardegna — Rifugio Tavolara">
+  <meta property="og:description" content="Appartamento per 4 ospiti nel centro di San Teodoro: giardino privato, terrazza e parcheggio gratuito. Prenota diretto con l&rsquo;host.">
+  <meta property="og:url" content="https://villa-serenita-san-teodoro.web.app/">
+  <meta property="og:image" content="https://villa-serenita-san-teodoro.web.app/images/og-image.jpg">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Rifugio Tavolara, casa vacanze a San Teodoro, Sardegna">
+  <meta name="twitter:card" content="summary_large_image">
+
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+
+  <!-- Structured data. Deliberately absent: aggregateRating (the 9.3 comes from Booking.com,
+       and marking up third-party reviews breaks Google's review-snippet policy). -->
+  <!-- jsonld:start -->
+  <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "VacationRental",
+  "@id": "https://villa-serenita-san-teodoro.web.app/#property",
+  "name": "Rifugio Tavolara",
+  "description": "Appartamento per 4 ospiti nel centro di San Teodoro, Sardegna: 2 camere da letto, 1 bagno, cucina attrezzata, giardino privato, terrazza, patio e parcheggio gratuito. Cala d'Ambra a 1,5 km, aeroporto di Olbia a 24 km.",
+  "url": "https://villa-serenita-san-teodoro.web.app/",
+  "inLanguage": "it-IT",
+  "identifier": "IT090092C2000S4969",
+  "image": "https://villa-serenita-san-teodoro.web.app/images/og-image.jpg",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "Villaggio Li Piri, Piano terra",
+    "addressLocality": "San Teodoro",
+    "addressRegion": "Sardegna",
+    "postalCode": "07052",
+    "addressCountry": "IT"
+  },
+  "geo": { "@type": "GeoCoordinates", "latitude": 40.7671367, "longitude": 9.6687503 },
+  "checkinTime": "15:00",
+  "checkoutTime": "11:00",
+  "priceRange": "80-180 EUR",
+  "availableLanguage": ["it", "en"],
+  "containsPlace": {
+    "@type": "Accommodation",
+    "occupancy": { "@type": "QuantitativeValue", "maxValue": 4 },
+    "numberOfBedrooms": 2,
+    "numberOfBathroomsTotal": 1,
+    "floorSize": { "@type": "QuantitativeValue", "value": 45, "unitCode": "MTK" },
+    "amenityFeature": [
+      { "@type": "LocationFeatureSpecification", "name": "Free private parking", "value": true },
+      { "@type": "LocationFeatureSpecification", "name": "Private garden", "value": true },
+      { "@type": "LocationFeatureSpecification", "name": "Terrace and patio", "value": true },
+      { "@type": "LocationFeatureSpecification", "name": "Air conditioning", "value": true },
+      { "@type": "LocationFeatureSpecification", "name": "Kitchen", "value": true },
+      { "@type": "LocationFeatureSpecification", "name": "Washing machine", "value": true },
+      { "@type": "LocationFeatureSpecification", "name": "Outdoor shower", "value": true },
+      { "@type": "LocationFeatureSpecification", "name": "Pets allowed on request", "value": true }
+    ]
+  }
+}
+  </script>
+  <!-- jsonld:end -->
 
   <!-- Fonts: Cormorant Garamond & Jost -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400;1,600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
 
-  <!-- AOS CSS for scroll animations -->
-  <link rel="stylesheet" href="https://unpkg.com/aos@2.3.4/dist/aos.css" />
+  <!-- LCP: the hero photo is the largest paint, start it with the document -->
+  <link rel="preload" as="image" href="images/08.jpg" fetchpriority="high">
 
   <!-- Flatpickr CSS for date pickers -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
@@ -42,12 +122,14 @@
         <a href="#gallery" class="nav-link"><span class="it">Galleria</span><span class="en">Gallery</span></a>
         <a href="#location" class="nav-link"><span class="it">Posizione</span><span class="en">Location</span></a>
         <a href="#pricing" class="nav-link"><span class="it">Tariffe</span><span class="en">Rates</span></a>
+        <a href="#faq" class="nav-link"><span class="it">Domande</span><span class="en">FAQ</span></a>
         <a href="#reservation" class="nav-link"><span class="it">Prenota</span><span class="en">Book</span></a>
       </div>
 
       <div class="nav-actions">
-        <button class="lang-toggle">IT | EN</button>
-        <button class="nav-toggle" aria-label="Toggle Menu">
+        <!-- / and /en/ are two real URLs (see hreflang in <head>); tools/build-en.mjs flips this link -->
+        <a class="lang-toggle" href="/en/" hreflang="en" lang="en" aria-label="Switch to English">IT | EN</a>
+        <button class="nav-toggle" aria-label="Toggle Menu" aria-expanded="false" aria-controls="mobile-menu">
           <svg viewBox="0 0 24 24" width="24" height="24" stroke="currentColor" stroke-width="1.5" fill="none" class="hamburger-icon">
             <line x1="3" y1="12" x2="21" y2="12"></line>
             <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -65,6 +147,7 @@
       <a href="#gallery" class="mobile-link"><span class="it">Galleria</span><span class="en">Gallery</span></a>
       <a href="#location" class="mobile-link"><span class="it">Posizione</span><span class="en">Location</span></a>
       <a href="#pricing" class="mobile-link"><span class="it">Tariffe</span><span class="en">Rates</span></a>
+      <a href="#faq" class="mobile-link"><span class="it">Domande</span><span class="en">FAQ</span></a>
       <a href="#reservation" class="mobile-link"><span class="it">Prenota</span><span class="en">Book</span></a>
     </div>
   </div>
@@ -76,17 +159,18 @@
        ================================================================ -->
   <section id="hero-section" class="hero">
     <div class="hero__bg">
-      <img src="images/08.jpg" alt="Rifugio Tavolara — casa e giardino a San Teodoro, Sardegna" fetchpriority="high">
+      <img src="images/08.jpg" width="675" height="900" decoding="async"
+           alt="Rifugio Tavolara — casa e giardino a San Teodoro, Sardegna"
+           data-alt-en="Rifugio Tavolara — holiday home and garden in San Teodoro, Sardinia" fetchpriority="high">
     </div>
     <div class="hero__overlay" aria-hidden="true"></div>
     <div class="hero__content">
-      <p class="hero__eyebrow">
-        <span class="it">San Teodoro &middot; Sardegna</span>
-        <span class="en">San Teodoro &middot; Sardinia</span>
-      </p>
       <h1 class="hero__title">
-        <span class="it">Rifugio Tavolara</span>
-        <span class="en">Rifugio Tavolara</span>
+        <span class="hero__eyebrow">
+          <span class="it">Casa vacanze a San Teodoro &middot; Sardegna</span>
+          <span class="en">Holiday rental in San Teodoro &middot; Sardinia</span>
+        </span>
+        <span class="hero__brand">Rifugio Tavolara</span>
       </h1>
       <p class="hero__subtitle">
         <span class="it">Un appartamento con giardino e spiaggia privata, nel cuore di San Teodoro.</span>
@@ -120,7 +204,7 @@
        STAT BAR
        ================================================================ -->
   <div class="stat-bar" data-aos="fade-up" data-aos-offset="-50">
-    <div class="container stat-bar__inner">
+    <div class="stat-bar__inner">
       <div class="stat-item">
         <span class="stat-value stat-counter" data-target="4">4</span>
         <span class="stat-label it">Ospiti max</span><span class="stat-label en">Guests max</span>
@@ -171,46 +255,101 @@
         </svg>
       </div>
 
-      <div class="about-grid">
-        <div class="about-content" data-aos="fade-right">
-          <p class="body-lg it">Posizionato al centro di San Teodoro, Rifugio Tavolara offre alloggio con vista sul giardino, un giardino, una zona spiaggia privata e una terrazza. Questa struttura mette a disposizione un patio e il parcheggio privato gratuito.</p>
-          <p class="body-lg en">Rifugio Tavolara is situated in San Teodoro city centre, offering easy access to key attractions. Cala d&rsquo;Ambra Beach is 1.6 km away, while Isola di Tavolara lies 15 km from the property.</p>
-          <p class="body-text it">Questo appartamento con aria condizionata comprende 2 camere da letto, un soggiorno, una cucina con utensili, frigorifero e macchina da caff&egrave;, e 1 bagno con bidet e doccia. Per vostra comodit&agrave;, la struttura pu&ograve; fornire asciugamani e biancheria da letto a pagamento.</p>
-          <p class="body-text en">Guests enjoy a private beach area, lush garden, and spacious terrace. The apartment features air-conditioning, a fully equipped kitchenette, and free on-site private parking.</p>
-          <p class="body-text it">Cala d&rsquo;Ambra &egrave; a 1,6 km da questo appartamento, mentre Isola di Tavolara si trova a 15 km dalla struttura. Aeroporto di Olbia-Costa Smeralda si trova a 24 km di distanza.</p>
-          <p class="body-text en">The apartment comprises two bedrooms, one bathroom, and a comfortable living room. Amenities include a washing machine, dining area, and outdoor furniture, ensuring a pleasant stay.</p>
-        </div>
-        <div class="about-image" data-aos="fade-left">
-          <img src="images/06.jpg" alt="Rifugio Tavolara garden" loading="lazy">
-        </div>
-      </div>
+      <p class="about-intro it">Appartamento di 45 m&sup2; con aria condizionata nel centro di San Teodoro: due camere da letto, soggiorno con divano letto, cucina attrezzata e un bagno con doccia e bidet. Giardino, terrazza e patio sono a uso esclusivo degli ospiti, con parcheggio privato gratuito.</p>
+      <p class="about-intro en">A 45 m&sup2; air-conditioned apartment in the centre of San Teodoro: two bedrooms, a living room with a sofa bed, a fully equipped kitchen and one bathroom with shower and bidet. Garden, terrace and patio are for guests only, with free private parking.</p>
 
-      <!-- Bed configuration -->
-      <div class="bed-config" data-aos="fade-up">
-        <h3 class="bed-config__title"><span class="it">Configurazione Letti</span><span class="en">Bed Configuration</span></h3>
-        <table class="bed-config__table">
-          <thead>
-            <tr>
-              <th class="it">Stanza</th><th class="en">Room</th>
-              <th class="it">Letti</th><th class="en">Beds</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              <td><span class="it">Camera 1</span><span class="en">Bedroom 1</span></td>
-              <td><span class="it">1 letto matrimoniale</span><span class="en">1 double bed</span></td>
-            </tr>
-            <tr>
-              <td><span class="it">Camera 2</span><span class="en">Bedroom 2</span></td>
-              <td><span class="it">1 letto a castello</span><span class="en">1 bunk bed</span></td>
-            </tr>
-            <tr>
-              <td><span class="it">Soggiorno</span><span class="en">Living room</span></td>
-              <td><span class="it">1 divano letto</span><span class="en">1 sofa bed</span></td>
-            </tr>
-          </tbody>
-        </table>
-        <p class="bed-config__note"><span class="it">Max 4 ospiti.</span><span class="en">Max 4 guests.</span></p>
+      <div class="layout-grid">
+        <div class="layout-spaces">
+          <h3 class="layout-title"><span class="it">Disposizione della casa</span><span class="en">The layout</span></h3>
+          <ul class="layout-list">
+            <li class="layout-item" data-aos="fade-up">
+              <span class="layout-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 11V8a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v3"/>
+                  <path d="M3 13a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v5H3z"/>
+                  <path d="M6 18v2M18 18v2"/>
+                </svg>
+              </span>
+              <div>
+                <h4><span class="it">Zona giorno</span><span class="en">Living area</span></h4>
+                <p><span class="it">Soggiorno con divano letto e tavolo da pranzo, angolo cottura con utensili, frigorifero e macchina da caff&egrave;.</span><span class="en">Living room with sofa bed and dining table, kitchenette with utensils, fridge and coffee machine.</span></p>
+                <span class="layout-tag"><span class="it">1 divano letto</span><span class="en">1 sofa bed</span></span>
+              </div>
+            </li>
+            <li class="layout-item" data-aos="fade-up" data-aos-delay="60">
+              <span class="layout-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 18V9a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v9"/>
+                  <path d="M3 18h18M7 7V5h10v2"/>
+                </svg>
+              </span>
+              <div>
+                <h4><span class="it">Camera 1</span><span class="en">Bedroom 1</span></h4>
+                <p><span class="it">Camera matrimoniale con copriletto blu e bianco.</span><span class="en">Double bedroom with a blue and white bedspread.</span></p>
+                <span class="layout-tag"><span class="it">1 letto matrimoniale</span><span class="en">1 double bed</span></span>
+              </div>
+            </li>
+            <li class="layout-item" data-aos="fade-up" data-aos-delay="120">
+              <span class="layout-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 5h16v6H4zM4 13h16v6H4z"/>
+                  <path d="M4 11h16"/>
+                </svg>
+              </span>
+              <div>
+                <h4><span class="it">Camera 2</span><span class="en">Bedroom 2</span></h4>
+                <p><span class="it">Seconda camera, ideale per i ragazzi: letti singoli su due livelli.</span><span class="en">Second bedroom, ideal for children: two single beds on two levels.</span></p>
+                <span class="layout-tag"><span class="it">1 letto a castello</span><span class="en">1 bunk bed</span></span>
+              </div>
+            </li>
+            <li class="layout-item" data-aos="fade-up" data-aos-delay="180">
+              <span class="layout-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 3v4"/><path d="M6 7h12l-1.5 3.5h-9z"/>
+                  <path d="M12 7v11"/><path d="M9 21h6"/>
+                  <path d="M8 10.5c0 2 1 3 1 3s1-1 1-3M14 10.5c0 2 1 3 1 3s1-1 1-3"/>
+                </svg>
+              </span>
+              <div>
+                <h4><span class="it">Bagno</span><span class="en">Bathroom</span></h4>
+                <p><span class="it">Un bagno con doccia e bidet. Asciugamani e biancheria da letto disponibili a pagamento.</span><span class="en">One bathroom with shower and bidet. Towels and bed linen available for a fee.</span></p>
+                <span class="layout-tag"><span class="it">1 bagno</span><span class="en">1 bathroom</span></span>
+              </div>
+            </li>
+            <li class="layout-item" data-aos="fade-up" data-aos-delay="240">
+              <span class="layout-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 21V9"/><path d="M12 9a7 7 0 0 0-7 7h14a7 7 0 0 0-7-7z"/>
+                  <path d="M4 21h16"/>
+                </svg>
+              </span>
+              <div>
+                <h4><span class="it">Esterni</span><span class="en">Outdoors</span></h4>
+                <p><span class="it">Giardino, terrazza e patio con tavolo, doccia esterna e zona spiaggia privata con ombrelloni.</span><span class="en">Garden, terrace and patio with a table, outdoor shower and a private beach area with umbrellas.</span></p>
+                <span class="layout-tag"><span class="it">Giardino &middot; terrazza &middot; patio</span><span class="en">Garden &middot; terrace &middot; patio</span></span>
+              </div>
+            </li>
+          </ul>
+          <p class="layout-note"><span class="it">Max 4 ospiti &middot; 45 m&sup2; &middot; 2 camere &middot; 1 bagno</span><span class="en">Max 4 guests &middot; 45 m&sup2; &middot; 2 bedrooms &middot; 1 bathroom</span></p>
+        </div>
+
+        <div class="layout-photos">
+          <figure class="layout-photo" data-aos="fade-left">
+            <img src="images/13.jpg" width="576" height="768" loading="lazy" decoding="async"
+                 alt="Soggiorno con divano e tavolo da pranzo"
+                 data-alt-en="Living room with sofa and dining table">
+          </figure>
+          <figure class="layout-photo" data-aos="fade-left" data-aos-delay="80">
+            <img src="images/07.jpg" width="576" height="768" loading="lazy" decoding="async"
+                 alt="Camera matrimoniale con copriletto blu e bianco"
+                 data-alt-en="Double bedroom with a blue and white bedspread">
+          </figure>
+          <figure class="layout-photo" data-aos="fade-left" data-aos-delay="160">
+            <img src="images/12.jpg" width="576" height="768" loading="lazy" decoding="async"
+                 alt="Terrazza coperta con tavolo apparecchiato"
+                 data-alt-en="Covered terrace with a laid table">
+          </figure>
+        </div>
       </div>
     </div>
   </section>
@@ -317,10 +456,9 @@
         <div class="amenity-card" data-aos="fade-up" data-aos-delay="100">
           <div class="amenity-icon">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M18 10V6a6 6 0 0 0-12 0v4"/>
-              <rect x="2" y="10" width="20" height="12" rx="2"/>
-              <circle cx="12" cy="16" r="2"/>
-              <path d="M12 18v4M8 22h8"/>
+              <path d="M4 11a8 8 0 0 1 16 0z"/>
+              <path d="M12 11v9"/>
+              <path d="M8 21h8"/>
             </svg>
           </div>
           <h3><span class="it">Terrazza &amp; Patio</span><span class="en">Terrace &amp; Patio</span></h3>
@@ -419,46 +557,74 @@
 
       <div class="gallery__grid">
         <div class="gallery__item" data-aos="zoom-in" data-aos-delay="0">
-          <img src="images/01.jpg" loading="lazy" alt="Ingresso di Rifugio Tavolara a San Teodoro">
+          <img src="images/01.jpg" width="1024" height="768" loading="lazy" decoding="async"
+               alt="Ingresso di Rifugio Tavolara a San Teodoro"
+               data-alt-en="Entrance of Rifugio Tavolara in San Teodoro">
         </div>
         <div class="gallery__item" data-aos="zoom-in" data-aos-delay="80">
-          <img src="images/02.jpg" loading="lazy" alt="Camera da letto di Rifugio Tavolara">
+          <img src="images/02.jpg" width="577" height="768" loading="lazy" decoding="async"
+               alt="Massi e piante del giardino"
+               data-alt-en="Rocks and plants in the garden">
         </div>
         <div class="gallery__item" data-aos="zoom-in" data-aos-delay="120">
-          <img src="images/03.jpg" loading="lazy" alt="Camera da letto con coperta blu e bianca">
+          <img src="images/03.jpg" width="675" height="900" loading="lazy" decoding="async"
+               alt="Patio con tavolo e sedie sotto l&rsquo;arco"
+               data-alt-en="Patio with table and chairs under the arch">
         </div>
         <div class="gallery__item" data-aos="zoom-in" data-aos-delay="160">
-          <img src="images/04.jpg" loading="lazy" alt="Bagno blu con lavandino e WC">
+          <img src="images/04.jpg" width="576" height="768" loading="lazy" decoding="async"
+               alt="Camera con due letti singoli"
+               data-alt-en="Bedroom with two single beds">
         </div>
         <div class="gallery__item" data-aos="zoom-in" data-aos-delay="200">
-          <img src="images/05.jpg" loading="lazy" alt="Cucina con mobili blu e forno">
+          <img src="images/05.jpg" width="576" height="768" loading="lazy" decoding="async"
+               alt="Prato con vialetto di pietre nel giardino"
+               data-alt-en="Lawn with a stone path in the garden">
         </div>
         <div class="gallery__item" data-aos="zoom-in" data-aos-delay="240">
-          <img src="images/06.jpg" loading="lazy" alt="Giardino con tavolo e sedie">
+          <img src="images/06.jpg" width="576" height="768" loading="lazy" decoding="async"
+               alt="Bagno con doccia, lavandino e bidet"
+               data-alt-en="Bathroom with shower, sink and bidet">
         </div>
         <div class="gallery__item" data-aos="zoom-in" data-aos-delay="280">
-          <img src="images/07.jpg" loading="lazy" alt="Camera da letto con copriletto blu e bianco">
+          <img src="images/07.jpg" width="576" height="768" loading="lazy" decoding="async"
+               alt="Camera da letto con copriletto blu e bianco"
+               data-alt-en="Bedroom with a blue and white bedspread">
         </div>
         <div class="gallery__item" data-aos="zoom-in" data-aos-delay="320">
-          <img src="images/08.jpg" loading="lazy" alt="Casa con giardino">
+          <img src="images/08.jpg" width="675" height="900" loading="lazy" decoding="async"
+               alt="Casa con giardino"
+               data-alt-en="Holiday home with garden">
         </div>
         <div class="gallery__item" data-aos="zoom-in" data-aos-delay="360">
-          <img src="images/09.jpg" loading="lazy" alt="Albero in mezzo a un campo d'erba">
+          <img src="images/09.jpg" width="1024" height="768" loading="lazy" decoding="async"
+               alt="Albero in mezzo a un campo d'erba"
+               data-alt-en="Tree in the middle of a grass field">
         </div>
         <div class="gallery__item" data-aos="zoom-in" data-aos-delay="400">
-          <img src="images/10.jpg" loading="lazy" alt="Cucina con mobili blu e piano cottura">
+          <img src="images/10.jpg" width="576" height="768" loading="lazy" decoding="async"
+               alt="Cucina con mobili blu e piano cottura"
+               data-alt-en="Kitchen with blue units and hob">
         </div>
         <div class="gallery__item" data-aos="zoom-in" data-aos-delay="440">
-          <img src="images/11.jpg" loading="lazy" alt="Camera da letto con copriletto blu e bianco">
+          <img src="images/11.jpg" width="576" height="768" loading="lazy" decoding="async"
+               alt="Camera da letto con copriletto blu e bianco"
+               data-alt-en="Bedroom with a blue and white bedspread">
         </div>
         <div class="gallery__item" data-aos="zoom-in" data-aos-delay="480">
-          <img src="images/12.jpg" loading="lazy" alt="Foto dalla galleria di Rifugio Tavolara">
+          <img src="images/12.jpg" width="576" height="768" loading="lazy" decoding="async"
+               alt="Terrazza coperta con tavolo e sedie"
+               data-alt-en="Covered terrace with table and chairs">
         </div>
         <div class="gallery__item" data-aos="zoom-in" data-aos-delay="520">
-          <img src="images/13.jpg" loading="lazy" alt="Soggiorno con divano e tavolo">
+          <img src="images/13.jpg" width="576" height="768" loading="lazy" decoding="async"
+               alt="Soggiorno con divano e tavolo"
+               data-alt-en="Living room with sofa and table">
         </div>
         <div class="gallery__item" data-aos="zoom-in" data-aos-delay="560">
-          <img src="images/14.jpg" loading="lazy" alt="Cucina o angolo cottura di Rifugio Tavolara">
+          <img src="images/14.jpg" width="1200" height="900" loading="lazy" decoding="async"
+               alt="Cucina o angolo cottura di Rifugio Tavolara"
+               data-alt-en="Kitchen or kitchenette of Rifugio Tavolara">
         </div>
       </div>
     </div>
@@ -543,7 +709,7 @@
           </ul>
         </div>
         <div class="location-map" data-aos="fade-left">
-          <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.9!2d9.6687503!3d40.7671367!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDDCsDQ2JzAxLjciTiA5wrA0MCcwNy41IkU!5e0!3m2!1sit!2sit!4v1710000000000!5m2!1sit!2sit"
+          <iframe title="Mappa: Rifugio Tavolara, San Teodoro, Sardegna" src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3022.9!2d9.6687503!3d40.7671367!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zNDDCsDQ2JzAxLjciTiA5wrA0MCcwNy41IkU!5e0!3m2!1sit!2sit!4v1710000000000!5m2!1sit!2sit"
             width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
         </div>
       </div>
@@ -631,6 +797,56 @@
             <p>&ldquo;<span class="it">Casa molto accogliente che disponeva di tutte le necessit&agrave;. La proprietaria &egrave; stata gentile e disponibile. Abbiamo usufruito degli ombrelloni e delle sdraio disponibili nella struttura.</span><span class="en">Very welcoming house that had everything we needed. The owner was kind and helpful. We made use of the umbrellas and sun loungers available at the property.</span>&rdquo;</p>
             <footer>&mdash; Paola <span class="it">Italia</span><span class="en">Italy</span> &#127470;&#127481; &middot; <span class="it">su Booking.com</span><span class="en">on Booking.com</span></footer>
           </blockquote>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================
+       BOOK DIRECT — conversion band. Every claim here is already stated
+       elsewhere on the page (best price guarantee, flexible cancellation).
+       ================================================================ -->
+  <section id="direct" class="section section--sea">
+    <div class="container">
+      <div class="section-header" data-aos="fade-up">
+        <span class="eyebrow it">Prenotazione Diretta</span>
+        <span class="eyebrow en">Book Direct</span>
+        <h2 class="section__title"><span class="it">Perch&eacute; prenotare qui</span><span class="en">Why book on this site</span></h2>
+        <p class="section__subtitle it">Nessuna piattaforma in mezzo: scrivi all&rsquo;host, prezzi trasparenti, cancellazione flessibile.</p>
+        <p class="section__subtitle en">No platform in between: message the host, transparent rates, flexible cancellation.</p>
+      </div>
+
+      <div class="direct-grid">
+        <div class="direct-card" data-aos="fade-up" data-aos-delay="0">
+          <div class="amenity-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>
+              <path d="M8 9h8M8 13h5"/>
+            </svg>
+          </div>
+          <h3><span class="it">Parli con l&rsquo;host</span><span class="en">You talk to the host</span></h3>
+          <p><span class="it">Richieste e conferme direttamente con chi ti accoglie, con risposta entro 24 ore. Per orari di arrivo o esigenze particolari non serve passare da nessun call center.</span><span class="en">Requests and confirmations go straight to the person who welcomes you, with a reply within 24 hours. No call centre for arrival times or special requests.</span></p>
+        </div>
+
+        <div class="direct-card" data-aos="fade-up" data-aos-delay="80">
+          <div class="amenity-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 2v20M17 6.5c0-1.9-2.2-3.5-5-3.5S7 4.6 7 6.5 9.2 10 12 10s5 1.6 5 3.5S14.8 17 12 17s-5-1.6-5-3.5"/>
+            </svg>
+          </div>
+          <h3><span class="it">Tariffa senza sorprese</span><span class="en">No surprises on the rate</span></h3>
+          <p><span class="it">Le tariffe per stagione sono pubblicate qui sopra, con notti minime chiare. Nessun costo nascosto e garanzia miglior prezzo: se trovi di meglio, rimborsiamo la differenza.</span><span class="en">Season rates are published above, with clear minimum stays. No hidden fees, and a best price guarantee: if you find it cheaper, we refund the difference.</span></p>
+        </div>
+
+        <div class="direct-card" data-aos="fade-up" data-aos-delay="160">
+          <div class="amenity-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="3"/>
+              <path d="M8 2v4M16 2v4M3 10h18M9 15l2 2 4-4"/>
+            </svg>
+          </div>
+          <h3><span class="it">Cancellazione flessibile</span><span class="en">Flexible cancellation</span></h3>
+          <p><span class="it">Cancellazione gratuita fino a 14 giorni prima dell&rsquo;arrivo, senza penali. Pagamento prima dell&rsquo;arrivo tramite bonifico bancario.</span><span class="en">Free cancellation up to 14 days before arrival, no penalties. Payment before arrival by bank transfer.</span></p>
         </div>
       </div>
     </div>
@@ -751,6 +967,78 @@
   </section>
 
   <!-- ================================================================
+       FAQ — real content for long-tail searches ("dove parcheggiare",
+       "check-in San Teodoro", ...). Native <details>, no JS.
+       ================================================================ -->
+  <section id="faq" class="section section--cream">
+    <div class="container">
+      <div class="section-header" data-aos="fade-up">
+        <span class="eyebrow it">Domande frequenti</span>
+        <span class="eyebrow en">FAQ</span>
+        <h2 class="section__title"><span class="it">Domande Frequenti</span><span class="en">Frequently Asked Questions</span></h2>
+      </div>
+
+      <div class="faq">
+        <details class="faq__item" data-aos="fade-up" open>
+          <summary class="faq__q"><span class="it">Quanto dista la spiaggia?</span><span class="en">How far is the beach?</span></summary>
+          <div class="faq__a">
+            <p class="it">Cala d&rsquo;Ambra &egrave; a 1,5 km, La Cinta a 2 km e Isuledda a 2,3 km: pochi minuti in auto, con parcheggio privato gratuito incluso nella struttura.</p>
+            <p class="en">Cala d&rsquo;Ambra is 1.5 km away, La Cinta 2 km and Isuledda 2.3 km &mdash; a few minutes by car, with free private parking at the property.</p>
+          </div>
+        </details>
+
+        <details class="faq__item" data-aos="fade-up">
+          <summary class="faq__q"><span class="it">Quali sono gli orari di check-in e check-out?</span><span class="en">What are the check-in and check-out times?</span></summary>
+          <div class="faq__a">
+            <p class="it">Check-in dalle 15:00 alle 18:00, check-out dalle 08:00 alle 11:00. Ti chiediamo di comunicare in anticipo l&rsquo;orario di arrivo.</p>
+            <p class="en">Check-in from 15:00 to 18:00, check-out from 08:00 to 11:00. Please let us know your arrival time in advance.</p>
+          </div>
+        </details>
+
+        <details class="faq__item" data-aos="fade-up">
+          <summary class="faq__q"><span class="it">Quanti ospiti può ospitare l&rsquo;appartamento?</span><span class="en">How many guests can the apartment sleep?</span></summary>
+          <div class="faq__a">
+            <p class="it">Fino a 4 ospiti: 1 letto matrimoniale, 1 letto a castello e 1 divano letto. Culla gratuita sempre disponibile per bambini da 0 a 2 anni.</p>
+            <p class="en">Up to 4 guests: 1 double bed, 1 bunk bed and 1 sofa bed. A cot is always available free of charge for children aged 0&ndash;2.</p>
+          </div>
+        </details>
+
+        <details class="faq__item" data-aos="fade-up">
+          <summary class="faq__q"><span class="it">C&rsquo;&egrave; il parcheggio?</span><span class="en">Is there parking?</span></summary>
+          <div class="faq__a">
+            <p class="it">S&igrave;: parcheggio privato gratuito in loco, senza necessit&agrave; di prenotazione.</p>
+            <p class="en">Yes: free private parking on site, no reservation needed.</p>
+          </div>
+        </details>
+
+        <details class="faq__item" data-aos="fade-up">
+          <summary class="faq__q"><span class="it">Lenzuola e asciugamani sono inclusi?</span><span class="en">Are bed linen and towels included?</span></summary>
+          <div class="faq__a">
+            <p class="it">Sono disponibili su richiesta, con supplemento. In casa trovi anche la lavatrice a disposizione degli ospiti.</p>
+            <p class="en">They are available on request, with a surcharge. The apartment also has a washing machine for guests.</p>
+          </div>
+        </details>
+
+        <details class="faq__item" data-aos="fade-up">
+          <summary class="faq__q"><span class="it">Gli animali sono ammessi?</span><span class="en">Are pets allowed?</span></summary>
+          <div class="faq__a">
+            <p class="it">S&igrave;, su richiesta e con possibile supplemento. Segnalalo nel messaggio di prenotazione.</p>
+            <p class="en">Yes, on request and possibly with a surcharge. Just mention it in your booking message.</p>
+          </div>
+        </details>
+
+        <details class="faq__item" data-aos="fade-up">
+          <summary class="faq__q"><span class="it">Come si paga la prenotazione?</span><span class="en">How do I pay for the booking?</span></summary>
+          <div class="faq__a">
+            <p class="it">Ricevi la conferma via email o WhatsApp entro 24 ore; il pagamento avviene prima dell&rsquo;arrivo tramite bonifico bancario.</p>
+            <p class="en">You get a confirmation by email or WhatsApp within 24 hours; payment is due before arrival by bank transfer.</p>
+          </div>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================================================================
        RESERVATION FORM (IDs unchanged — do not touch!)
        ================================================================ -->
   <section id="reservation" class="section reservation-section">
@@ -830,6 +1118,24 @@
       </div>
     </div>
   </section>
+  <!-- Sticky booking bar: shown once the hero is scrolled past, hidden again on the form.
+       Price mirrors the Low Season card in #pricing - keep the two in sync. -->
+  <div id="booking-bar" class="booking-bar">
+    <div class="booking-bar__inner">
+      <p class="booking-bar__price">
+        <span class="booking-bar__from"><span class="it">da</span><span class="en">from</span></span>
+        <strong>&euro;80</strong>
+        <span class="booking-bar__unit"><span class="it">/notte</span><span class="en">/night</span></span>
+      </p>
+      <p class="booking-bar__text">
+        <span class="it">Casa vacanze a San Teodoro &middot; 4 ospiti &middot; giardino e parcheggio privato</span>
+        <span class="en">Holiday home in San Teodoro &middot; 4 guests &middot; garden and private parking</span>
+      </p>
+      <a class="btn btn--primary booking-bar__cta" href="#reservation">
+        <span class="it">Verifica disponibilit&agrave;</span><span class="en">Check availability</span>
+      </a>
+    </div>
+  </div>
   </main>
 
   <!-- ================================================================
@@ -859,9 +1165,11 @@
 
       <div class="footer-col footer-col--right">
         <h4>Info</h4>
-        <p>&copy; 2025 Rifugio Tavolara</p>
+        <p>&copy; 2026 Rifugio Tavolara</p>
         <p>CIN: IT090092C2000S4969</p>
         <p>San Teodoro, Sardegna</p>
+        <!-- crawlable path to the English URL -->
+        <p class="footer-lang"><a href="/en/" hreflang="en" lang="en">English version</a></p>
       </div>
     </div>
 
@@ -877,10 +1185,10 @@
   </footer>
 
   <!-- ================================================================
-       SCRIPTS (unchanged)
+       SCRIPTS — flatpickr must stay before the modules (calendar.js reads the
+       global at import time); app.js owns the reveal + sticky bar behaviour.
        ================================================================ -->
-  <script src="https://unpkg.com/aos@2.3.4/dist/aos.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr" defer></script>
   <script type="module" src="js/reservations.js"></script>
   <script type="module" src="js/app.js"></script>
 </body>
