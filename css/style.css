@@ -2631,12 +2631,23 @@ html.js [data-aos].is-visible {
   );
 }
 
+/* nav legibility: white links sit on whatever the photo happens to be */
+.hero::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 190px;
+  background: linear-gradient(180deg, rgba(8, 18, 30, 0.42), transparent);
+  pointer-events: none;
+  z-index: -1;
+}
+
 /* fade the photo into the cream page below (the stat bar floats on the seam) */
 .hero::after {
   content: '';
   position: absolute;
   inset: auto 0 -1px 0;
-  height: 200px;
+  height: 140px;
   background: linear-gradient(180deg, transparent, var(--color-cream));
   pointer-events: none;
 }
