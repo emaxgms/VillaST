@@ -2858,6 +2858,14 @@ html.js [data-aos].is-visible {
   }
 }
 
+/* Two icon-left columns only where the text column is actually readable:
+   below 768px the description was down to ~77px, i.e. one word per line. */
+@media (max-width: 767px) {
+  .amenities-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .section-header::after {
     margin-top: var(--space-16);
