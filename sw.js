@@ -10,7 +10,7 @@ importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js
 importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging-compat.js');
 
 firebase.initializeApp({
-  apiKey: "__FIREBASE_API_KEY__",
+  apiKey: "AIzaSyDL0y9ztdnM_5-fFmla-rBZpeRaSRTM3OQ",
   authDomain: "villa-serenita-san-teodoro.firebaseapp.com",
   projectId: "villa-serenita-san-teodoro",
   storageBucket: "villa-serenita-san-teodoro.firebasestorage.app",
