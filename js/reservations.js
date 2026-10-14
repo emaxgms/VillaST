@@ -112,6 +112,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         source: 'guest',
         name, email, phone, guests, checkIn, checkOut,
         status: 'pending',
+        // Consumed by the Apps Script notifier (tools/apps-script/notify.gs):
+        // lang picks the confirmation email language, pushState marks the push
+        // as not yet sent.
+        lang: document.body.classList.contains('lang-en') ? 'en' : 'it',
+        pushState: 'new',
         createdAt: serverTimestamp()
       });
 

@@ -35,6 +35,21 @@ export {
   buildAdminDayState
 };
 
+// Italian names for the admin calendar (flatpickr ships English only; merging a
+// partial locale object is supported). The guest calendars keep flatpickr's
+// locale untouched — the public pages are not part of the admin redesign.
+const ADMIN_LOCALE = {
+  firstDayOfWeek: 1,
+  weekdays: {
+    shorthand: ['Dom', 'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab'],
+    longhand: ['Domenica', 'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato']
+  },
+  months: {
+    shorthand: ['Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu', 'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'],
+    longhand: ['Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno', 'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre']
+  }
+};
+
 /**
  * Load all occupied dates from Firestore `availability` collection.
  * Any document in the collection represents a blocked day.
@@ -83,19 +98,16 @@ export function decorateDays(fp, state, opts = {}) {
   );
   const isMap = state instanceof Map;
   const today = formatDateISO(new Date());
+  // Locale-proof: day cells show their day number and every cell in scope
+  // belongs to the month/year the instance is showing. (Parsing the aria-label
+  // only works while the calendar is in English.)
+  const year = fp.currentYear;
+  const month = fp.currentMonth;
 
   dayElements.forEach(dayEl => {
-    // Parse the date from aria-label (Flatpickr stores "Month Day, YYYY")
-    const ariaLabel = dayEl.getAttribute('aria-label');
-    if (!ariaLabel) return;
-
-    // Flatpickr's aria-label defaults to locale format "F j, Y" (e.g. "July 27, 2026").
-    // Appending 'T00:00:00' blindly yields "July 27, 2026T00:00:00" → Invalid Date,
-    // which skipped ALL decoration. Parse the label as-is (JS Date understands it).
-    const parsed = new Date(ariaLabel);
-    if (isNaN(parsed.getTime())) return;
-
-    const dateStr = formatDateISO(parsed);
+    const dayNum = parseInt(dayEl.textContent, 10);
+    if (!dayNum) return;
+    const dateStr = formatDateISO(new Date(year, month, dayNum));
 
     // ALWAYS remove every semantic class before re-adding, otherwise days
     // that change state across months keep stale colors (root-cause fix).
@@ -403,7 +415,7 @@ export function initGuestCalendar(checkInEl, checkOutEl, bookedDates) {
 }
 
 /**
- * Initialize the admin calendar (inline, day-click popup interaction).
+ * Initialize the admin calendar (inline, day-click sheet interaction).
  * No defaultDate: it MUST open on the current month (a preselected stale date
  * used to force the picker onto an old month). Occupied/pending days are
  * painted by decorateDays on every render (onDayCreate / month / year change).
@@ -411,8 +423,8 @@ export function initGuestCalendar(checkInEl, checkOutEl, bookedDates) {
  * @param {HTMLElement} el — container element for inline calendar
  * @param {Set<string>|Map<string,object>} bookedDates — initial state passed to decorateDays
  * @param {function(Date[]): void} [onChange] — kept for API compatibility, no longer wired
- *   (the old select-then-save interaction is replaced by the day popup)
- * @param {object} extraOptions - additional Flatpickr options (e.g. onDayClick, onMonthChange)
+ *   (the old select-then-save interaction is replaced by the day sheet)
+ * @param {object} extraOptions - additional Flatpickr options
  * @returns {object} Flatpickr instance
  */
 export function initAdminCalendar(el, bookedDates, onChange, extraOptions = {}) {
@@ -423,7 +435,7 @@ export function initAdminCalendar(el, bookedDates, onChange, extraOptions = {}) 
   return flatpickr(el, {
     inline: true,
     dateFormat: 'Y-m-d',
-    locale: { firstDayOfWeek: 1 },
+    locale: ADMIN_LOCALE,
     onDayCreate: function (selectedDates, dateStr, instance) {
       decorateDays(instance, state, { showTooltips: state instanceof Map });
     },

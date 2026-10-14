@@ -3,20 +3,29 @@ rules_version='2'
 service cloud.firestore {
   match /databases/{database}/documents {
 
+    // Admin = a doc exists at admins/{uid}. The panel shows the uid in
+    // Impostazioni; the doc is created once from the Firebase console.
+    function isAdmin() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+
     // Booking records — single source of truth.
     match /reservations/{id} {
-      // Anyone can submit a *pending* guest request. Only an authenticated
-      // admin can create a manual 'blocked' entry. This blocks direct writes
-      // that would bypass availability (a guest can never reserve dates).
+      // Guests may only submit a *pending* guest request carrying the fields
+      // the form always writes; admins may create manual 'blocked' entries.
+      // This blocks direct writes that would bypass availability (a guest can
+      // never reserve dates).
       allow create: if
         (request.resource.data.get('status', '') == 'pending'
-          && request.resource.data.get('source', '') == 'guest')
-        || (request.auth != null
+          && request.resource.data.get('source', '') == 'guest'
+          && request.resource.data.keys().hasAll(['name', 'email', 'checkIn', 'checkOut']))
+        || (isAdmin()
           && request.resource.data.get('source', '') == 'admin'
           && request.resource.data.get('status', '') == 'blocked');
 
-      // Only authenticated users (admin) can read/update/delete records.
-      allow read, update, delete: if request.auth != null;
+      // Guest PII lives here: admins only.
+      allow read, update, delete: if isAdmin();
     }
 
     // Derived occupancy index. Public read so the guest calendar can paint
@@ -25,25 +34,35 @@ service cloud.firestore {
     // confirms cannot both take the same day.
     match /availability/{date} {
       allow read: if true;
-      allow create: if request.auth != null;
+      allow create: if isAdmin();
       allow update: if false;
-      allow delete: if request.auth != null;
+      allow delete: if isAdmin();
+    }
+
+    // FCM tokens registered by the admin PWA (Impostazioni > Attiva notifiche).
+    match /pushTokens/{id} {
+      allow read, write: if isAdmin();
+    }
+
+    // "Push di prova" requests: the panel writes one, the Apps Script notifier
+    // sends it and marks it sent.
+    match /pushTests/{id} {
+      allow read, write: if isAdmin();
     }
 
     match /calendars/{document=**} {
-      allow read, write: if request.auth != null;
+      allow read, write: if isAdmin();
     }
 
     // Public collections - anyone can read, only admins can write
     match /amenities/{document=**} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.admin == true;
+      allow write: if isAdmin();
     }
 
-    // Pricing information - public read only
     match /pricing/{document=**} {
       allow read: if true;
-      allow write: if request.auth != null && request.auth.token.admin == true;
+      allow write: if isAdmin();
     }
 
     // Deny everything else by default
