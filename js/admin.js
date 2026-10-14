@@ -1,16 +1,18 @@
 /**
- * admin.js - Admin dashboard logic
- * VillaST - San Teodoro, Sardegna
+ * admin.js — Admin dashboard logic (v4: mobile-first, requests queue home)
+ * VillaST — San Teodoro, Sardegna
  *
  * Single source of truth: the `reservations` collection.
- *  - guest requests   : { source: 'guest', status: 'pending' }
+ *  - guest requests    : { source: 'guest', status: 'pending' }
  *  - confirmed bookings: { status: 'confirmed' }
- *  - manual blocks    : { source: 'admin', status: 'blocked' }
+ *  - manual blocks     : { source: 'admin', status: 'blocked' }
  *
  * Occupied statuses (dates taken): 'confirmed' and 'blocked'.
- * The `availability` collection is a derived per-day occupancy index that is
- * kept in sync by every mutation below, and is claim-protected by Firestore
- * rules so two concurrent confirms cannot reserve the same day.
+ * The `availability` collection is a derived per-day occupancy index kept in
+ * sync by every mutation below, and claim-protected by Firestore rules so two
+ * concurrent confirms cannot reserve the same day.
+ *
+ * Panels: Richieste (home) · Calendario · Prenotazioni · Impostazioni.
  */
 
 import { db, auth } from './firebase-config.js';
@@ -24,6 +26,13 @@ import {
   groupContiguousDates,
   buildAdminDayState
 } from './calendar.js';
+import {
+  registerServiceWorker,
+  getNotificationState,
+  enableNotifications,
+  sendTestPush,
+  initForegroundHandler
+} from './notify-client.js';
 import {
   signInWithEmailAndPassword,
   signOut,
@@ -47,6 +56,10 @@ let allReservations = [];
 let adminAvailabilityDocs = [];
 // Fresh per-day state map rebuilt on every snapshot/render (never one-shot enriched).
 let adminDayState = new Map();
+let foregroundWired = false;
+
+// Max guests selectable in the popup draft editor.
+const MAX_GUESTS = 4;
 
 /* ─── helpers ─────────────────────────────────────────────────────────── */
 
@@ -61,7 +74,8 @@ function showAdminMessage(text, type = 'success') {
   el.textContent = text;
   el.className = `admin-msg admin-msg--${type}`;
   el.style.display = 'block';
-  setTimeout(() => { el.style.display = 'none'; }, 5000);
+  clearTimeout(showAdminMessage._t);
+  showAdminMessage._t = setTimeout(() => { el.style.display = 'none'; }, 4500);
 }
 
 function showLoginError(msg) {
@@ -96,37 +110,184 @@ function escapeHtml(str) {
     .replace(/'/g, '&#039;');
 }
 
-// Popup draft editor styles live in their own stylesheet, linked at runtime
-// so this file stays self-contained (admin.html owns <head> links).
-(function ensurePopupStylesheet() {
-  if (document.querySelector('link[href="css/admin-popup.css"]')) return;
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  link.href = 'css/admin-popup.css';
-  document.head.appendChild(link);
-})();
+function dateStrTitle(dateStr) {
+  const s = new Date(dateStr + 'T12:00:00').toLocaleDateString('it-IT', {
+    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
+  });
+  return s.replace(/\b\w/g, c => c.toUpperCase()); // 'Gio 27 Ago 2026'
+}
 
-// Max guests selectable in the popup draft editor.
-const MAX_GUESTS = 4;
+function compactDateLabel(dateStr) {
+  if (!dateStr) return '-';
+  const s = new Date(dateStr + 'T12:00:00').toLocaleDateString('it-IT', {
+    weekday: 'short', day: 'numeric', month: 'short'
+  });
+  return s.replace(/\b\w/g, c => c.toUpperCase()); // 'Sab 22 Ago'
+}
+
+function shortDate(isoStr) {
+  if (!isoStr) return '-';
+  const s = new Date(isoStr + 'T12:00:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'short' });
+  return s.replace('.', '');
+}
+
+function nightsOf(checkIn, checkOut) {
+  // Inclusive day count: the occupancy model blocks the check-out day too.
+  return getDatesInRange(checkIn, checkOut).length;
+}
+
+function nightsBetween(checkIn, checkOut) {
+  // Guest-facing "notti": 12 -> 18 is 6 nights (7 occupied days).
+  return Math.max(1, nightsOf(checkIn, checkOut) - 1);
+}
+
+function timestampMs(docSnap) {
+  const ts = docSnap.data().createdAt;
+  if (ts && typeof ts.toDate === 'function') return ts.toDate().getTime();
+  if (ts && ts.seconds) return ts.seconds * 1000;
+  return 0;
+}
+
+function relativeAge(ms) {
+  if (!ms) return '';
+  const diff = Date.now() - ms;
+  const min = Math.floor(diff / 60000);
+  if (min < 2) return 'adesso';
+  if (min < 60) return `${min} min fa`;
+  const h = Math.floor(min / 60);
+  if (h < 24) return `${h}h fa`;
+  const d = Math.floor(h / 24);
+  return `${d}g fa`;
+}
+
+function whenLabel(isoDay) {
+  const today = formatDateISO(new Date());
+  const tomorrow = addDays(today, 1);
+  if (isoDay === today) return 'oggi';
+  if (isoDay === tomorrow) return 'domani';
+  const diff = Math.round((new Date(isoDay + 'T12:00:00') - new Date(today + 'T12:00:00')) / 86400000);
+  return diff > 1 ? `tra ${diff} giorni` : 'passato';
+}
+
+/** Occupied days (confirmed or blocked) inside a request's range. */
+function occupiedDaysInRange(checkIn, checkOut) {
+  return getDatesInRange(checkIn, checkOut).filter((day) => {
+    const st = adminDayState.get(day);
+    return st && (st.status === 'confirmed' || st.status === 'blocked');
+  });
+}
+
+function conflictNote(days) {
+  const st = adminDayState.get(days[0]);
+  if (!st) return '';
+  const who = st.source === 'admin' && st.status === 'blocked'
+    ? 'a un blocco manuale'
+    : `alla prenotazione confermata di ${escapeHtml(st.name || 'un ospite')}`;
+  const range = st.checkIn && st.checkOut ? ` (${shortDate(st.checkIn)} → ${shortDate(st.checkOut)})` : '';
+  return `Si sovrappone ${who}${range}`;
+}
 
 /* ─── rendering ───────────────────────────────────────────────────────── */
 
-function renderReservations(docs, filterStatus = '') {
+function renderStats() {
+  const all = allReservations.map(ds => ds.data());
+  const pending = all.filter(d => d.status === 'pending').length;
+  const confirmed = all.filter(d => d.status === 'confirmed').length;
+  const blocked = all.filter(d => d.status === 'blocked').length;
+
+  const setText = (id, text) => { const el = document.getElementById(id); if (el) el.textContent = text; };
+  setText('chip-pending', `${pending} in attesa`);
+  setText('chip-pending-2', `${pending} in attesa`);
+  setText('chip-confirmed', `${confirmed} confermate`);
+  setText('chip-blocked', `${blocked} bloccate`);
+
+  const badge = document.getElementById('tab-pending-count');
+  if (badge) {
+    badge.textContent = String(pending);
+    badge.hidden = pending === 0;
+  }
+}
+
+function renderRequests() {
+  const list = document.getElementById('requests-list');
+  if (!list) return;
+
+  const pendingDocs = allReservations
+    .filter(ds => ds.data().status === 'pending')
+    .sort((a, b) => timestampMs(b) - timestampMs(a));
+
+  let conflicts = 0;
+  const cards = pendingDocs.map(ds => {
+    const d = ds.data();
+    const days = occupiedDaysInRange(d.checkIn, d.checkOut);
+    const hasConflict = days.length > 0;
+    if (hasConflict) conflicts++;
+
+    return `
+      <article class="req-card${hasConflict ? ' req-card--conflict' : ''}">
+        <div class="req-card__top">
+          <div>
+            <h3 class="req-card__name">${escapeHtml(d.name || 'Senza nome')}</h3>
+            <p class="req-card__meta">${shortDate(d.checkIn)} → ${shortDate(d.checkOut)} · ${nightsBetween(d.checkIn, d.checkOut)} notti · ${d.guests || '?'} ospiti</p>
+          </div>
+          <span class="req-card__age">${relativeAge(timestampMs(ds))}</span>
+        </div>
+        ${hasConflict ? `<p class="req-card__warn">⚠ ${conflictNote(days)}</p>` : ''}
+        <div class="req-card__actions">
+          <button class="btn-accept" data-confirm="${ds.id}" ${hasConflict ? 'disabled title="Date occupate: rifiuta o libera prima le date"' : ''}>Accetta</button>
+          <button class="btn-reject" data-reject="${ds.id}">Rifiuta</button>
+        </div>
+      </article>`;
+  }).join('');
+
+  list.innerHTML = cards || '<p class="empty-note">Nessuna richiesta in attesa.</p>';
+
+  const chip = document.getElementById('chip-conflict');
+  if (chip) {
+    chip.textContent = `${conflicts} con conflitto`;
+    chip.hidden = conflicts === 0;
+  }
+}
+
+function renderUpcoming() {
+  const list = document.getElementById('upcoming-list');
+  if (!list) return;
+
+  const today = formatDateISO(new Date());
+  const arrivals = allReservations
+    .filter(ds => {
+      const d = ds.data();
+      return d.status === 'confirmed' && d.source !== 'admin' && d.checkOut >= today;
+    })
+    .sort((a, b) => (a.data().checkIn || '').localeCompare(b.data().checkIn || ''))
+    .slice(0, 3);
+
+  list.innerHTML = arrivals.length
+    ? arrivals.map(ds => {
+        const d = ds.data();
+        return `
+          <div class="arrival-row">
+            <div>
+              <b>${escapeHtml(d.name || '-')}</b>
+              <div class="muted">${d.guests || '?'} ospiti · ${nightsBetween(d.checkIn, d.checkOut)} notti</div>
+            </div>
+            <div class="arrival-when"><b>${whenLabel(d.checkIn)}</b><br>${shortDate(d.checkIn)} → ${shortDate(d.checkOut)}</div>
+          </div>`;
+      }).join('')
+    : '<p class="empty-note">Nessun arrivo in programma.</p>';
+}
+
+function renderReservations(docs, filterStatus = '', search = '') {
   const tbody = document.getElementById('reservations-tbody');
   if (!tbody) return;
 
-  const allData = docs.map(d => d.data());
-  const pendingCount = allData.filter(d => d.status === 'pending').length;
-  const confirmedCount = allData.filter(d => d.status === 'confirmed').length;
-  const blockedCount = allData.filter(d => d.status === 'blocked').length;
-  const pendingChip = document.querySelector('.stat-chip--pending');
-  const confirmedChip = document.querySelector('.stat-chip--confirmed');
-  const blockedChip = document.querySelector('.stat-chip--blocked');
-  if (pendingChip) pendingChip.textContent = `${pendingCount} In attesa`;
-  if (confirmedChip) confirmedChip.textContent = `${confirmedCount} Confermate`;
-  if (blockedChip) blockedChip.textContent = `${blockedCount} Bloccate`;
-
-  const filtered = filterStatus ? docs.filter(d => d.data().status === filterStatus) : docs;
+  const term = search.trim().toLowerCase();
+  const filtered = docs.filter(ds => {
+    const d = ds.data();
+    if (filterStatus && d.status !== filterStatus) return false;
+    if (!term) return true;
+    return `${d.name || ''} ${d.email || ''}`.toLowerCase().includes(term);
+  });
 
   if (filtered.length === 0) {
     tbody.innerHTML = `<tr class="empty-row"><td colspan="6">Nessuna prenotazione trovata</td></tr>`;
@@ -174,6 +335,15 @@ function renderReservations(docs, filterStatus = '') {
   tbody.querySelectorAll('.btn-delete').forEach(btn => {
     btn.addEventListener('click', () => deleteReservation(btn.dataset.id));
   });
+}
+
+function renderAll() {
+  renderStats();
+  renderRequests();
+  renderUpcoming();
+  const filterSelect = document.getElementById('filter-status');
+  const searchInput = document.getElementById('search-reservations');
+  renderReservations(allReservations, filterSelect ? filterSelect.value : '', searchInput ? searchInput.value : '');
 }
 
 /* ─── mutations (all keep `availability` in sync) ─────────────────────── */
@@ -258,10 +428,10 @@ async function deleteReservation(id) {
 function startReservationsListener() {
   const q = query(collection(db, 'reservations'), orderBy('createdAt', 'desc'));
   const filterSelect = document.getElementById('filter-status');
+  const searchInput = document.getElementById('search-reservations');
 
   unsubscribeReservations = onSnapshot(q, async (snapshot) => {
     allReservations = snapshot.docs;
-    renderReservations(allReservations, filterSelect ? filterSelect.value : '');
 
     // Rebuild the per-day state FRESH (never reuse a stale enrichment) and
     // repaint the live calendar, so new confirmations/blocks repaint
@@ -273,6 +443,8 @@ function startReservationsListener() {
       console.error('Failed to refresh availability index:', err);
     }
     adminDayState = buildAdminDayState(allReservations, adminAvailabilityDocs);
+
+    renderAll();
     refreshAdminCalendar();
   }, (err) => {
     console.error('Reservations listener error:', err);
@@ -280,7 +452,21 @@ function startReservationsListener() {
   });
 
   if (filterSelect) {
-    filterSelect.addEventListener('change', () => renderReservations(allReservations, filterSelect.value));
+    filterSelect.addEventListener('change', () => renderReservations(allReservations, filterSelect.value, searchInput ? searchInput.value : ''));
+  }
+  if (searchInput) {
+    searchInput.addEventListener('input', () => renderReservations(allReservations, filterSelect ? filterSelect.value : '', searchInput.value));
+  }
+
+  // Requests queue: one delegated listener, wired once.
+  const list = document.getElementById('requests-list');
+  if (list) {
+    list.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-confirm],[data-reject]');
+      if (!btn) return;
+      if (btn.dataset.confirm) confirmReservation(btn.dataset.confirm);
+      if (btn.dataset.reject) rejectReservation(btn.dataset.reject);
+    });
   }
 }
 
@@ -288,7 +474,7 @@ function stopReservationsListener() {
   if (unsubscribeReservations) { unsubscribeReservations(); unsubscribeReservations = null; }
 }
 
-/* ─── calendar panel (v2: day-click popup) ────────────────────────────── */
+/* ─── calendar panel (day-click bottom sheet) ─────────────────────────── */
 
 function refreshAdminCalendar() {
   if (adminCalendarInstance) {
@@ -315,31 +501,28 @@ async function initAdminCalendarSection() {
   // flatpickr (v4.6, the loaded bundle) exposes NO onDayClick option — only
   // onDayCreate. Intercept day clicks with a native capture listener on the
   // calendar container: preventDefault + stopPropagation blocks flatpickr's
-  // own selection logic and opens the day popup instead.
+  // own selection logic and opens the day sheet instead.
   adminCalendarInstance.calendarContainer.addEventListener('click', onDayClickCapture, true);
   refreshAdminCalendar();
 }
 
-/* ─── day popup (poppover) ────────────────────────────────────────────── */
+/* ─── day sheet ───────────────────────────────────────────────────────── */
 
 function onDayClickCapture(e) {
   const target = e.target;
   if (!target || !target.classList || !target.classList.contains('flatpickr-day')) return;
   if (target.classList.contains('flatpickr-disabled')) return;
-  const ariaLabel = target.getAttribute('aria-label');
-  if (!ariaLabel) return;
-  const parsed = new Date(ariaLabel);
-  if (isNaN(parsed.getTime())) return;
+  // Locale-proof date extraction: the day number inside the cell + the month
+  // and year the instance is showing (parsing the aria-label breaks as soon as
+  // the calendar is not in English).
+  if (!adminCalendarInstance) return;
+  const dayNum = parseInt(target.textContent, 10);
+  if (!dayNum) return;
+  const date = new Date(adminCalendarInstance.currentYear, adminCalendarInstance.currentMonth, dayNum);
+  if (isNaN(date.getTime())) return;
   e.preventDefault();
   e.stopPropagation();
-  openDayPopup(formatDateISO(parsed));
-}
-
-function dateStrTitle(dateStr) {
-  const s = new Date(dateStr + 'T12:00:00').toLocaleDateString('it-IT', {
-    weekday: 'short', day: 'numeric', month: 'short', year: 'numeric'
-  });
-  return s.replace(/\b\w/g, c => c.toUpperCase()); // 'Gio 27 Ago 2026'
+  openDayPopup(formatDateISO(date));
 }
 
 function getPendingOverlaps(dateStr) {
@@ -409,7 +592,7 @@ function openDayPopup(dateStr) {
   } else {
     actions.push(
       '<button class="poppover__btn btn-primary" data-action="draft-save" disabled>Salva modifiche</button>',
-      '<button class="poppover__btn poppover__btn--danger" data-action="delete">Elimina prenotazione</button>'
+      '<button class="poppover__btn poppover__btn--danger" data-action="delete">Elimina</button>'
     );
   }
   actionsEl.innerHTML = actions.join('');
@@ -554,18 +737,10 @@ async function removeBlockDay(resId, dateStr) {
 }
 
 /* ─── draft editor (confirmed reservations) ───────────────────────────── */
-// The popup holds a local draft {checkIn, checkOut, guests} plus the ORIGINAL
+// The sheet holds a local draft {checkIn, checkOut, guests} plus the ORIGINAL
 // range (oldCheckIn/oldCheckOut) so availability sync can compute exactly
 // which days are freed vs newly claimed. Nothing touches Firestore until
 // [Salva modifiche] commits the whole draft in ONE writeBatch.
-
-function compactDateLabel(dateStr) {
-  if (!dateStr) return '-';
-  const s = new Date(dateStr + 'T12:00:00').toLocaleDateString('it-IT', {
-    weekday: 'short', day: 'numeric', month: 'short'
-  });
-  return s.replace(/\b\w/g, c => c.toUpperCase()); // 'Sab 22 Ago'
-}
 
 /**
  * Pure draft validation — mirrored in /tmp/villast-draft-validate.test.mjs.
@@ -592,7 +767,7 @@ function validateDraft(d, bookedSet) {
   if (clash) { out.msg = `Il giorno ${formatDateDisplay(clash)} è già occupato: modifica le date.`; return out; }
 
   out.ok = true;
-  out.msg = `Notte/i: ${out.nights}`;
+  out.msg = `Giorni occupati: ${out.nights}`;
   return out;
 }
 
@@ -611,7 +786,7 @@ function renderDraftEditor(popup) {
   const d = popup._draft;
   const v = validateDraft(d, popup._bookedOther);
 
-  // Small pretty steppers: compact round ± buttons, disabled at hard limits
+  // Small steppers: compact round ± buttons, disabled at hard limits
   // (check-in can't move past check-out, check-out can't move before it).
   const inMinusDisabled = addDays(d.checkIn, -1) > d.checkOut;
   const inPlusDisabled = addDays(d.checkIn, 1) > d.checkOut;
@@ -688,47 +863,125 @@ async function saveDraftChanges(popup, resId) {
   }
 }
 
-/* ─── panels / auth ───────────────────────────────────────────────────── */
+/* ─── panels / settings / auth ────────────────────────────────────────── */
+
+const PANELS = {
+  requests: { title: 'Richieste' },
+  calendar: { title: 'Calendario' },
+  reservations: { title: 'Prenotazioni' },
+  settings: { title: 'Impostazioni' }
+};
+
+function panelEl(name) { return document.getElementById(`${name}-panel`); }
+
+function activatePanel(name) {
+  if (!PANELS[name]) return;
+  document.querySelectorAll('.sidebar-link[data-panel]').forEach(link => {
+    link.classList.toggle('active', link.dataset.panel === name);
+  });
+  Object.keys(PANELS).forEach(key => {
+    const el = panelEl(key);
+    if (!el) return;
+    if (key === name) showEl(el); else hideEl(el);
+  });
+  const title = document.getElementById('dash-title');
+  if (title) title.textContent = PANELS[name].title;
+
+  if (name === 'calendar') {
+    if (adminCalendarInstance) {
+      adminCalendarInstance.destroy();
+      adminCalendarInstance = null;
+    }
+    initAdminCalendarSection();
+  }
+}
 
 function initPanelSwitching() {
-  const sidebarLinks = document.querySelectorAll('.sidebar-link[data-panel]');
-  const panels = {
-    reservations: document.getElementById('reservations-panel'),
-    calendar: document.getElementById('calendar-panel')
-  };
-
-  sidebarLinks.forEach(link => {
+  document.querySelectorAll('.sidebar-link[data-panel]').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();
-      const panelName = link.dataset.panel;
-      sidebarLinks.forEach(l => l.classList.remove('active'));
-      link.classList.add('active');
-      Object.entries(panels).forEach(([name, el]) => {
-        if (!el) return;
-        el.style.display = name === panelName ? '' : 'none';
-      });
-      if (panelName === 'calendar') {
-        if (adminCalendarInstance) {
-          adminCalendarInstance.destroy();
-          adminCalendarInstance = null;
-        }
-        initAdminCalendarSection();
-      }
+      activatePanel(link.dataset.panel);
     });
   });
 }
 
-function showDashboard() {
+async function refreshNotifyState() {
+  const text = document.getElementById('notify-state-text');
+  const dot = document.getElementById('notify-dot');
+  const enableBtn = document.getElementById('enable-notifications-btn');
+  if (!text || !dot) return;
+
+  const state = await getNotificationState();
+  text.textContent = state.text;
+  dot.className = `state-dot state-dot--${state.level === 'on' ? 'on' : (state.level === 'warn' ? 'warn' : 'off')}`;
+  if (enableBtn) {
+    enableBtn.hidden = !state.canEnable;
+    enableBtn.disabled = false;
+    enableBtn.textContent = 'Attiva notifiche';
+  }
+}
+
+function wireSettings(currentUser) {
+  const emailEl = document.getElementById('admin-email');
+  const uidEl = document.getElementById('admin-uid');
+  const emailBadge = document.getElementById('admin-email-badge');
+  if (emailEl) emailEl.textContent = currentUser.email || '—';
+  if (uidEl) uidEl.textContent = currentUser.uid || '—';
+  if (emailBadge) emailBadge.textContent = currentUser.email || 'Admin';
+
+  const enableBtn = document.getElementById('enable-notifications-btn');
+  if (enableBtn && !enableBtn._wired) {
+    enableBtn._wired = true;
+    enableBtn.addEventListener('click', async () => {
+      enableBtn.disabled = true;
+      enableBtn.textContent = 'Attivazione…';
+      try {
+        await enableNotifications();
+        showAdminMessage('Notifiche attive su questo dispositivo.', 'success');
+      } catch (err) {
+        console.error('Enable notifications failed:', err);
+        showAdminMessage(err && err.message ? err.message : 'Attivazione non riuscita.', 'error');
+      }
+      refreshNotifyState();
+    });
+  }
+
+  const testBtn = document.getElementById('test-push-btn');
+  if (testBtn && !testBtn._wired) {
+    testBtn._wired = true;
+    testBtn.addEventListener('click', async () => {
+      testBtn.disabled = true;
+      try {
+        await sendTestPush();
+        showAdminMessage('Push di prova richiesta: arriva entro pochi minuti.', 'success');
+      } catch (err) {
+        console.error('Test push failed:', err);
+        showAdminMessage('Invio della push di prova non riuscito.', 'error');
+      }
+      setTimeout(() => { testBtn.disabled = false; }, 3000);
+    });
+  }
+
+  refreshNotifyState();
+}
+
+function showDashboard(user) {
   hideEl(document.getElementById('login-screen'));
   showEl(document.getElementById('dashboard'));
   startReservationsListener();
   initPanelSwitching();
-  // Calendar is the primary/default panel (admin.html marks it active):
-  // initialize it right away, not only after a sidebar click.
-  const activeLink = document.querySelector('.sidebar-link[data-panel].active');
-  if (activeLink && activeLink.dataset.panel === 'calendar' && !adminCalendarInstance) {
-    initAdminCalendarSection();
-  }
+  wireSettings(user);
+  // Home = the requests queue; the calendar initialises lazily on first visit.
+  activatePanel('requests');
+
+  registerServiceWorker().then(() => {
+    if (foregroundWired) return;
+    foregroundWired = true;
+    initForegroundHandler((note) => {
+      showAdminMessage(`${note.title || 'Nuova richiesta'}${note.body ? ' — ' + note.body : ''}`, 'success');
+    });
+    refreshNotifyState();
+  });
 }
 
 function showLogin() {
@@ -740,7 +993,7 @@ function showLogin() {
 
 document.addEventListener('DOMContentLoaded', () => {
   onAuthStateChanged(auth, (user) => {
-    if (user) showDashboard(); else showLogin();
+    if (user) showDashboard(user); else showLogin();
   });
 
   initDayPopup();
@@ -765,10 +1018,11 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  const signOutBtn = document.getElementById('sign-out-btn');
-  if (signOutBtn) {
-    signOutBtn.addEventListener('click', async () => {
+  ['sign-out-btn', 'sign-out-btn-2'].forEach(id => {
+    const btn = document.getElementById(id);
+    if (!btn) return;
+    btn.addEventListener('click', async () => {
       try { await signOut(auth); } catch (err) { console.error('Sign out error:', err); }
     });
-  }
+  });
 });

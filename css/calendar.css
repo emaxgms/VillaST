@@ -159,194 +159,138 @@
   cursor: not-allowed !important;
 }
 
-/* ─── Admin Calendar (Inline Dark Theme Dashboard) ──────────────────────── */
+/* ─── Admin Calendar (inline, day-sheet interaction, light theme) ───────── */
 
-.calendar-instructions {
-  width: 100%;
-  max-width: none; /* full-width admin calendar */
-}
+.calendar-instructions { width: 100%; max-width: none; }
 
 .calendar-instructions .flatpickr-calendar.inline {
-  background: var(--surface-2, #252836) !important;
-  border: 1px solid var(--border, #2E3347) !important;
-  border-radius: var(--radius-lg, 12px) !important;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.3) !important;
+  background: var(--surface, #FFFFFF) !important;
+  border: 1px solid var(--border, #E8D5B7) !important;
+  border-radius: var(--radius-lg, 16px) !important;
+  box-shadow: 0 10px 30px -18px rgba(26, 60, 94, 0.3) !important;
   width: 100% !important;
   max-width: none !important;
   padding: 1.25rem 1.25rem 1.5rem !important;
 }
 
-/* Bigger month header + nav arrows */
-.calendar-instructions .flatpickr-months {
-  margin-bottom: 0.25rem;
-}
+.calendar-instructions .flatpickr-months { margin-bottom: 0.25rem; }
 .calendar-instructions .flatpickr-current-month {
-  font-size: 1.35rem !important;
+  font-family: 'Cormorant Garamond', Georgia, serif !important;
+  font-style: italic;
+  font-size: 1.4rem !important;
+  color: var(--text, #1A3C5E) !important;
   line-height: 1.2 !important;
 }
 .calendar-instructions .flatpickr-prev-month,
-.calendar-instructions .flatpickr-next-month {
-  padding: 0.6rem !important;
-}
+.calendar-instructions .flatpickr-next-month { padding: 0.6rem !important; color: var(--text-muted, #6B7089) !important; fill: var(--text-muted, #6B7089) !important; }
 .calendar-instructions .flatpickr-prev-month svg,
-.calendar-instructions .flatpickr-next-month svg {
-  width: 16px;
-  height: 16px;
-}
+.calendar-instructions .flatpickr-next-month svg { width: 16px; height: 16px; }
 
-/* Comfortable weekday header row */
 .calendar-instructions span.flatpickr-weekday {
-  font-size: 0.78rem !important;
+  color: var(--text-muted, #6B7089) !important;
+  font-weight: 600 !important;
+  font-size: 0.76rem !important;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   padding-top: 0.75rem !important;
   padding-bottom: 0.5rem !important;
 }
 
-/* Big day cells with a defined 1px grid */
 .calendar-instructions .flatpickr-day {
   height: 64px !important;
   line-height: 62px !important;
-  font-size: 1.1rem !important;
+  font-size: 1.05rem !important;
+  color: var(--text, #1A3C5E) !important;
   border-radius: 10px !important;
-  border: 1px solid rgba(255, 255, 255, 0.07) !important;
+  border: 1px solid rgba(26, 60, 94, 0.07) !important;
   margin: 2px 0 !important;
-  transition: transform 0.15s ease, box-shadow 0.15s ease,
-    background 0.15s ease !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease !important;
 }
 
 .calendar-instructions .flatpickr-day:hover:not(.flatpickr-disabled) {
   transform: translateY(-2px);
-  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 8px 18px -10px rgba(26, 60, 94, 0.4);
   z-index: 2;
 }
 
 /* Today ring */
 .calendar-instructions .flatpickr-day.is-today {
-  border: 2px solid var(--success, #34D399) !important;
+  border: 2px solid var(--terra, #B0553A) !important;
   font-weight: 600;
 }
 
-/* Pending request(s): amber tint + count badge.
-   Placed BEFORE occupied rules so is-guest-confirmed / is-admin-blocked
-   backgrounds stay dominant when combined; the ::after badge still shows. */
-.calendar-instructions .flatpickr-day.is-pending {
-  background: rgba(251, 191, 36, 0.12) !important;
-}
+/* Pending request(s): amber tint + count badge (occupied rules below win the background) */
+.calendar-instructions .flatpickr-day.is-pending { background: rgba(183, 121, 31, 0.10) !important; }
 .calendar-instructions .flatpickr-day.is-pending[data-pending-count]:not([data-pending-count="0"])::after {
   content: attr(data-pending-count);
-  position: absolute;
-  top: 3px;
-  right: 3px;
-  min-width: 16px;
-  height: 16px;
-  padding: 0 4px;
-  border-radius: 999px;
-  background: var(--warning, #FBBF24);
-  color: #1A1D27;
-  font-size: 0.62rem;
-  font-weight: 700;
-  line-height: 16px;
-  text-align: center;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.35);
+  position: absolute; top: 3px; right: 3px; min-width: 16px; height: 16px;
+  padding: 0 4px; border-radius: 999px;
+  background: var(--warning, #B7791F); color: #fff;
+  font-size: 0.62rem; font-weight: 700; line-height: 16px; text-align: center;
+  box-shadow: 0 2px 6px rgba(26, 60, 94, 0.25);
 }
 
-/* 1. Days blocked in DB AND selected by Flatpickr (Solid Terracotta) */
-.calendar-instructions .flatpickr-day.is-reserved.selected {
-  background: var(--terra, #C1694F) !important;
-  border-color: var(--terra, #C1694F) !important;
-  color: #FFFFFF !important;
-  font-weight: 600 !important;
-  pointer-events: auto !important;
-  box-shadow: 0 4px 10px rgba(193, 105, 79, 0.4) !important;
-}
-
-.calendar-instructions .flatpickr-day.selected {
-  background: var(--terra, #C1694F) !important;
-  border-color: var(--terra, #C1694F) !important;
-  color: #FFFFFF !important;
-  font-weight: 600 !important;
-}
-
-/* 1b. Initial selected state also distinguishes block origin. */
-.calendar-instructions .flatpickr-day.is-guest-confirmed.selected {
-  background: var(--azure, #2E86AB) !important;
-  border-color: var(--azure, #2E86AB) !important;
-  box-shadow: 0 4px 10px rgba(46, 134, 171, 0.4) !important;
-}
-.calendar-instructions .flatpickr-day.is-admin-blocked.selected {
-  background: var(--terra, #C1694F) !important;
-  border-color: var(--terra, #C1694F) !important;
-  box-shadow: 0 4px 10px rgba(193, 105, 79, 0.4) !important;
-}
-
-/* 2. Free days (subtle emerald tint, clearly clickable) */
+/* Free days */
 .calendar-instructions .flatpickr-day.is-available:not(.selected) {
-  color: var(--success, #34D399) !important;
-  background: rgba(52, 211, 153, 0.08) !important;
-  border: 1px solid rgba(52, 211, 153, 0.28) !important;
-  pointer-events: auto !important;
+  color: var(--success, #2E7D32) !important;
+  background: rgba(46, 125, 50, 0.07) !important;
+  border: 1px solid rgba(46, 125, 50, 0.22) !important;
 }
-
 .calendar-instructions .flatpickr-day.is-available:not(.selected):hover {
-  background: rgba(52, 211, 153, 0.16) !important;
-  border-color: var(--success, #34D399) !important;
-  box-shadow: 0 0 0 3px rgba(52, 211, 153, 0.15);
+  background: rgba(46, 125, 50, 0.15) !important;
+  border-color: var(--success, #2E7D32) !important;
+  box-shadow: 0 0 0 3px rgba(46, 125, 50, 0.12);
 }
 
-/* 3. Days blocked in DB BUT clicked by admin to unblock (Dashed Red Border) */
-.calendar-instructions .flatpickr-day.is-reserved:not(.selected) {
-  background: rgba(248, 113, 113, 0.1) !important; /* Soft red danger glow */
-  border: 1.5px dashed var(--danger, #F87171) !important;
-  color: var(--danger, #F87171) !important;
+/* Guest-confirmed days */
+.calendar-instructions .flatpickr-day.is-guest-confirmed:not(.selected) {
+  background: rgba(46, 134, 171, 0.12) !important;
+  border: 1.5px dashed var(--azure, #2E86AB) !important;
+  color: #1F6E92 !important;
   text-decoration: line-through !important;
-  pointer-events: auto !important;
-  opacity: 0.8;
+  text-decoration-color: rgba(31, 110, 146, 0.45) !important;
 }
 
-/* 4. Days available in DB BUT clicked by admin to block (Dashed Terracotta Border) */
-.calendar-instructions .flatpickr-day.is-available.selected {
-  background: rgba(193, 105, 79, 0.2) !important;
-  border: 1.5px dashed var(--terra, #C1694F) !important;
+/* Manual admin blocks */
+.calendar-instructions .flatpickr-day.is-admin-blocked:not(.selected) {
+  background: rgba(176, 85, 58, 0.12) !important;
+  border: 1.5px dashed var(--terra, #B0553A) !important;
+  color: var(--terra, #B0553A) !important;
+  text-decoration: line-through !important;
+  text-decoration-color: rgba(176, 85, 58, 0.45) !important;
+}
+
+/* Selected / opened day */
+.calendar-instructions .flatpickr-day.selected,
+.calendar-instructions .flatpickr-day.is-reserved.selected {
+  background: var(--terra, #B0553A) !important;
+  border-color: var(--terra, #B0553A) !important;
   color: #FFFFFF !important;
   font-weight: 600 !important;
+  box-shadow: 0 6px 16px -8px rgba(176, 85, 58, 0.7) !important;
+}
+.calendar-instructions .flatpickr-day.is-available.selected {
+  background: rgba(176, 85, 58, 0.85) !important;
+  border: 1.5px dashed var(--terra, #B0553A) !important;
+  color: #FFFFFF !important;
 }
 
-/* 5. Manual admin blocks vs confirmed guest bookings (dashed, line-through) */
-.calendar-instructions .flatpickr-day.is-admin-blocked:not(.selected) {
-  background: rgba(193, 105, 79, 0.14) !important;
-  border: 1.5px dashed var(--terra, #C1694F) !important;
-  color: #E5A08B !important;
-  text-decoration: line-through !important;
-  text-decoration-color: rgba(229, 160, 139, 0.55) !important;
-  pointer-events: auto !important;
-}
-
-.calendar-instructions .flatpickr-day.is-guest-confirmed:not(.selected) {
-  background: rgba(46, 134, 171, 0.14) !important;
-  border: 1.5px dashed var(--azure, #2E86AB) !important;
-  color: #7FC4E4 !important;
-  text-decoration: line-through !important;
-  text-decoration-color: rgba(127, 196, 228, 0.55) !important;
-  pointer-events: auto !important;
-}
-
-/* Dimmed disabled/out-of-month days */
+/* Out-of-month / disabled */
 .calendar-instructions .flatpickr-day.flatpickr-disabled,
 .calendar-instructions .flatpickr-day.flatpickr-disabled:hover {
-  color: rgba(139, 143, 168, 0.35) !important;
+  color: rgba(107, 112, 137, 0.5) !important;
   background: transparent !important;
   border-color: transparent !important;
   cursor: not-allowed !important;
-  transform: none;
-  box-shadow: none;
+  transform: none; box-shadow: none;
 }
 
 /* Responsive: compact 44px cells on narrow screens */
 @media (max-width: 560px) {
   .calendar-instructions .flatpickr-day {
-    height: 44px !important;
-    line-height: 42px !important;
-    font-size: 0.9rem !important;
+    height: 44px !important; line-height: 42px !important; font-size: 0.9rem !important;
   }
+  .calendar-instructions .flatpickr-calendar.inline { padding: 0.75rem 0.6rem 1rem !important; }
 }
 
 /* ─── Legend & Appended Widgets ─────────────────────────────────────────── */
