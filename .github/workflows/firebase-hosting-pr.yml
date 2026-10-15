@@ -6,6 +6,16 @@ on:
       - main
       - develop
     types: [opened, synchronize, reopened, closed]
+    # Only for paths Firebase Hosting can serve (mirrors firebase.json -> hosting.ignore,
+    # minus firestore.rules/indexes which are part of the deploy). A new, unlisted path
+    # still triggers: the safe failure is one deploy too many, never a skipped deploy.
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+      - 'tools/**'
+      - 'test/**'
+      - 'villa/**'
+      - 'package.json'
 
 permissions:
   contents: read
