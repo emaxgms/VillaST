@@ -53,7 +53,21 @@ export async function getNotificationState() {
     if (!swRegistration && 'serviceWorker' in navigator) {
       swRegistration = (await navigator.serviceWorker.getRegistration(SW_SCOPE)) || null;
     }
-    if (swRegistration) return { level: 'on', text: 'Attive su questo dispositivo', canEnable: false };
+    if (swRegistration) {
+      // Permission alone is not proof this device is reachable: it is active only
+      // once its FCM token is stored. Re-registering here heals a device whose
+      // permission was granted but whose token was never saved.
+      try {
+        const token = await getToken(getMessaging(), {
+          vapidKey: VAPID_PUBLIC_KEY, serviceWorkerRegistration: swRegistration
+        });
+        // ponytail: idempotent upsert on every check; one write per settings open is nothing.
+        if (token) { await storeToken(token); return { level: 'on', text: 'Attive su questo dispositivo', canEnable: false }; }
+      } catch (err) {
+        console.error('Token registration failed:', err);
+      }
+      return { level: 'warn', text: 'Da completare — tocca Attiva notifiche', canEnable: true };
+    }
   }
   if (!standalone && /iPhone|iPad|iPod/.test(navigator.userAgent)) {
     return { level: 'warn', text: 'Aggiungi prima la pagina alla schermata Home', canEnable: false };
