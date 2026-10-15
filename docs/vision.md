@@ -32,7 +32,7 @@ with no paid infrastructure and no server to babysit.
 | 0 — Site + SEO | bilingual URLs, metadata, structured data, sitemap, visual refresh, conversion bar | done (#22, #27) |
 | 1 — Admin v4 | phone-first queue, calendar + day sheet, reservations, settings; PWA push; admin-only rules; Apps Script notifier; branded bilingual confirmation email | done (#28–#33) |
 | 2 — Go-live polish | host account + `admins/{uid}`, real contacts, legal pages, iPhone install, single-push retest | owner actions, see below |
-| 3 — Growth & analytics | Search Console, Google Business Profile, analytics events, custom domain | planned (`docs/seo-marketing-review.md`) |
+| 3 — Growth & analytics | Search Console, Google Business Profile, analytics events, custom domain | planned — step-by-step guide in `docs/analytics-fase-5.md` |
 | 4 — Open | payments/prices, rejection email, multi-user roles, admin localisation | deliberately out of scope for now |
 
 ## Analytics and measurement
@@ -73,4 +73,5 @@ Nothing is tagged today, so no user numbers exist yet. The plan (events and why)
 - Developer guide (build, gates, flows) — `DEV_NOTES.md`
 - Admin v4 design: goals, flows, setup checklist, ceilings — `docs/admin-panel-v4-design.md`
 - SEO/marketing audit, keyword plan, measurement plan, debt — `docs/seo-marketing-review.md`
+- Analytics setup guide (GA4 + Search Console, step by step) — `docs/analytics-fase-5.md`
 - Agent conventions — `AGENTS.md`
