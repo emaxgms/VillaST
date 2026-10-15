@@ -14,7 +14,10 @@ backend. One generated file (`en/index.html`) is committed, never built in CI.
 - The host (non-technical, phone-first) runs the rental from `/admin`: one push notification per new
   request (FCM web push to the PWA installed from Safari), accept/decline in two taps, and the
   guest's confirmation email sent from the villa Gmail by a Google Apps Script notifier — free tier,
-  no Cloud Functions, no Blaze plan. Setup: `tools/apps-script/README.md`; design + flows:
+  no Cloud Functions, no Blaze plan. Email text + villa facts live in `mailSubject_`/`mailHtml_` +
+  the `VILLA_` constants of that script; pushes are rendered by the browser from the payload, never
+  re-displayed in `sw.js` (a second display path duplicates every notification).
+  Setup: `tools/apps-script/README.md`; design + flows:
   `docs/admin-panel-v4-design.md`; rules suite: `test/rules.test.mjs`.
 - Firebase project: `villa-serenita-san-teodoro`.
 - SEO: canonical + `hreflang`, Open Graph/Twitter cards, `VacationRental` JSON-LD, `robots.txt`,

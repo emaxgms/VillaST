@@ -79,16 +79,37 @@ npx -y firebase-tools@latest emulators:exec --only firestore --project demo-vill
 Then exercise the flow you touched in the browser: booking form, availability calendar, admin
 login, gallery lightbox, sticky booking bar. There is no test framework.
 
-## Host notifications (v4)
+## Host notifications + guest confirmation email (v4)
 
-The admin panel is a PWA (`manifest.webmanifest` + `sw.js`): the host installs it from Safari
-("Add to Home Screen", iOS 16.4+), taps *Impostazioni → Attiva notifiche* (FCM token stored in
-`pushTokens`) and gets one push per new booking request. On accept, the guest receives the
-confirmation email from the villa Gmail.
+The admin panel is a PWA (`manifest.webmanifest` + `sw.js`, scope `/admin`): the host installs it from
+Safari ("Add to Home Screen", iOS 16.4+) or Chrome, opens *Impostazioni → Attiva notifiche* (FCM token
+stored in `pushTokens`) and gets one push per new booking request. The service worker is push-only and
+caches nothing, so the public site is unaffected.
 
-Both are sent by `tools/apps-script/notify.gs` — Google Apps Script, time trigger every 5 minutes,
-service account in Script Properties, no Cloud Functions and no paid plan. Deploy checklist and
-quotas: `tools/apps-script/README.md`. Flow details: `docs/admin-panel-v4-design.md`.
+**One display path only.** The notifier sends a `notification` payload plus a `webpush.notification`
+block (icon, badge, per-request `tag`, lang): the browser renders that block, and `sw.js` deliberately
+has **no** `onBackgroundMessage`/`showNotification` — showing it there too displayed every push twice.
+`notificationclick` in the SW still handles the tap (opens `/admin`).
+
+Both push kinds and the confirmation email are sent by `tools/apps-script/notify.gs` — Google Apps
+Script, time trigger every 5 minutes, service account in Script Properties, no Cloud Functions and no
+paid plan. Deploy checklist and quotas: `tools/apps-script/README.md`. Flow design:
+`docs/admin-panel-v4-design.md`.
+
+### The confirmation email (flow 2)
+
+- Trigger: the host taps *Conferma*; `js/admin.js` writes `status: 'confirmed'` in one atomic batch
+  together with the availability claims. The browser sends nothing.
+- Send: on the next tick, `mailConfirmed_()` queries `status == 'confirmed'` with
+  `mailState != 'sent'`, skips manual bookings (`source == 'admin'`), sends from the villa Gmail via
+  `MailApp` in the guest's `lang`, then writes `mailState: 'sent'` + `mailSentAt`.
+- Idempotence: the `mailState` guard. A crash before the send retries on the next tick; a crash
+  between send and PATCH can resend once (at-least-once).
+- Content: `mailSubject_()` + `mailHtml_()` in the same file — table layout, inline styles only
+  (mail clients drop `<style>` blocks). Villa facts (phone, IBAN, address, check-in 15:00 /
+  check-out 10:00) are the `VILLA_` constants at the top; **replace the OWNER placeholders**.
+- To change it: edit the file here, then paste the whole file over the old content in the Apps Script
+  editor and Save (the trigger survives). `checkSetup()` verifies the script still sees Firestore.
 
 Firestore rules: `reservations` (read/update/delete), `availability` (create/delete),
 `pushTokens`, `pushTests` all require an `admins/{uid}` document; guests can still only create
