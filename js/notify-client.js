@@ -16,7 +16,7 @@ import { getMessaging, getToken, isSupported, onMessage } from "https://www.gsta
 // Web Push certificate (VAPID) public key — Firebase console > Settings >
 // Cloud Messaging > Web Push certificates. Public by design; the private half
 // stays with FCM. Empty until the one-off console setup is done.
-export const VAPID_PUBLIC_KEY = "";
+export const VAPID_PUBLIC_KEY = "BCMkeWJDRXNBJmz3arZ2qhejnTK1FkprJft9TmH_p1Uv19EPO5RNfTqG89hAXDQ0rOGRJ1kgw4pD6iViyGMcGDE";
 
 const SW_URL = '/sw.js';
 const SW_SCOPE = '/admin';
