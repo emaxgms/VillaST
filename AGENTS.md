@@ -100,8 +100,11 @@ browser (booking form, admin login, calendar, sticky bar, both language pages) a
   "fix" a masked key.
 - Keep `firestore.rules` in sync with what the JS actually writes; a rule change needs its own deploy.
 - `firebase.json` `hosting.ignore` keeps `docs/`, `tools/`, `task/`, `test-*`, `*.md` and `villa/` out
-  of the deploy — anything new at the repo root is published publicly unless listed there. The same
-  six patterns are the `paths-ignore` filter of both `.github/workflows/firebase-hosting-*.yml`
-  triggers, so keep the two lists in sync when a new non-deployed path appears.
+  of the deploy — anything new at the repo root is published publicly unless listed there. The
+  workflow triggers filter a **subset** of those paths (`**.md`, `docs/**`, `tools/**`, `test/**`,
+  `villa/**`, `package.json`): `task/**`, `test-*`, `wb-*.json`, `.github/**`, dotfiles and
+  `firebase.json` are kept out of the deploy but not out of the triggers, and `firestore.rules` /
+  `firestore.indexes.json` must keep triggering them (the merge workflow deploys the rules). Add a new
+  non-deployed top-level path to both lists.
 - The sticky booking bar rate is hard-coded twice (`index.html` bar + the Low Season pricing card):
   update both.
