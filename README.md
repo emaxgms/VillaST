@@ -109,7 +109,7 @@ css/  style.css  calendar.css  admin.css    Public site, calendars, admin "Casa"
 js/   firebase-config.js app.js reservations.js calendar.js day-state.js admin.js notify-client.js
 tools/  build-en.mjs  check-seo.mjs  optimize-images.py  apps-script/{notify.gs,README.md}
 test/   rules.test.mjs                      Firestore rules suite (emulator)
-docs/   seo-marketing-review.md  admin-panel-v4-design.md
+docs/   seo-marketing-review.md  admin-panel-v4-design.md  vision.md
 firestore.rules  firestore.indexes.json  firebase.json  .firebaserc
 ```
 
@@ -126,7 +126,8 @@ npx -y firebase-tools@latest emulators:exec --only firestore --project demo-vill
 
 There is no test framework: the gates above plus a browser pass over the flow you touched. The
 developer guide (layout, bilingual build rules, how to add a page or a collection, deploy commands)
-is `DEV_NOTES.md`; agent-facing conventions are in `AGENTS.md`.
+is `DEV_NOTES.md`; agent-facing conventions are in `AGENTS.md`. The vision, roadmap and current
+status — what we are building and where we are — is `docs/vision.md`.
 
 *Content note: the canonical listing is on Booking.com; the copy in `index.html` is the authoritative
 version for this site. Marketing audit and the owner's remaining actions:
