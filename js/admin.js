@@ -998,15 +998,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
   initDayPopup();
 
-  // Arm the push receiver as soon as the panel opens: the SW must exist for
-  // foreground messages, and having the registration in memory is what makes
-  // the Impostazioni state report Attive on the next load.
-  registerServiceWorker().then(() => {
-    initForegroundHandler((note) => {
-      showAdminMessage(`${note.title || 'Nuova notifica'}${note.body ? ': ' + note.body : ''}`, 'success');
-    });
-  });
-
   const loginForm = document.getElementById('login-form');
   if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
