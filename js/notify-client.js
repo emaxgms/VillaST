@@ -49,8 +49,11 @@ export async function getNotificationState() {
   if (Notification.permission === 'denied') {
     return { level: 'off', text: 'Bloccate — riattivale dalle impostazioni del telefono', canEnable: false };
   }
-  if (Notification.permission === 'granted' && swRegistration) {
-    return { level: 'on', text: 'Attive su questo dispositivo', canEnable: false };
+  if (Notification.permission === 'granted') {
+    if (!swRegistration && 'serviceWorker' in navigator) {
+      swRegistration = (await navigator.serviceWorker.getRegistration(SW_SCOPE)) || null;
+    }
+    if (swRegistration) return { level: 'on', text: 'Attive su questo dispositivo', canEnable: false };
   }
   if (!standalone && /iPhone|iPad|iPod/.test(navigator.userAgent)) {
     return { level: 'warn', text: 'Aggiungi prima la pagina alla schermata Home', canEnable: false };
