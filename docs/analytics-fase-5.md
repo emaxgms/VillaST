@@ -152,8 +152,14 @@ quest'ordine:
    `tools/build-en.mjs`, che copia la pagina e sostituisce solo i metadati IT→EN, quindi il tag
    finisce in entrambe le lingue.
    - Il Consent Mode qui prescritto è quello **advanced**: `gtag('consent', 'default', {… 'denied'})`
-     **prima** di caricare `gtag.js`. Da sapere: in stato "denied" le richieste a
-     `google-analytics.com` **partono lo stesso**, come ping senza cookie (`…/g/collect?…&gcs=G100`).
+     **prima** di caricare `gtag.js`. Il default deve negare **tutti e quattro** i tipi —
+     `ad_storage`, `ad_user_data`, `ad_personalization`, `analytics_storage` (è lo snippet di
+     riferimento di Google): è la configurazione a cui si riferiscono i valori `gcs` della
+     sezione 6. Un tipo **non** elencato vale `granted`, quindi chi per un sito senza pubblicità
+     nega **solo** `analytics_storage` legge un valore diverso da `G100` (≈ `G110`/`G101`, secondo
+     l'ordine con cui Google codifica i tipi): non è un guasto, è un'altra configurazione.
+     Da sapere: in stato "denied" le richieste a
+     `google-analytics.com` **partono lo stesso**, come ping senza cookie (`…/g/collect?…&gcs=…`).
      Il consenso governa l'uso di cookie e identificatori, non l'esistenza della richiesta.
    - Se si vuole **zero traffico** verso Google prima del consenso serve il *basic consent mode*:
      `gtag.js` non viene caricato finché il banner non concede (e la CSP può omettere gli host
@@ -273,7 +279,10 @@ scrollato l'hero.
 - *Advanced consent mode* (default, quello descritto al passo 2.1): in stato "rifiutato" le
   richieste verso GA4 **partono comunque**, come ping senza cookie — non è un guasto. Il check
   corretto: in DevTools → Application → Cookies **nessun** cookie `_ga` / `_gid`; nel tab Rete le
-  richieste presenti a `google-analytics.com/g/collect` portano `gcs=G100`.
+  richieste presenti a `google-analytics.com/g/collect` portano `gcs=G100` — con il default che nega
+  tutti e quattro i tipi, come da passo 2.1. Se nega **solo** `analytics_storage`, lo stesso stato
+  "rifiutato" produce un valore diverso (≈ `G110`/`G101`) e resta corretto: confronta con quello che
+  hai configurato, non con `G100` a occhi chiusi.
 - *Basic consent mode*: in stato "rifiutato" **nessuna** richiesta a `google-analytics.com`, e
   `window.dataLayer` senza eventi di misurazione.
 
@@ -330,3 +339,6 @@ collegata, e il report "Search Console" si popola entro 48 h.
 - Generatore della pagina EN: `tools/build-en.mjs`; gate SEO: `tools/check-seo.mjs`
 - Punti di emissione eventi: `js/reservations.js`, `js/app.js`, `js/calendar.js`, `index.html`
 - Convenzioni (branch + PR, nessuna modifica diretta a `main`): `AGENTS.md`
+- Consent Mode — tipi di consenso, snippet di default `denied` e comportamento in stato "denied":
+  Google, `developers.google.com/tag-platform/security/guides/consent` e
+  `support.google.com/analytics/answer/9976101`
