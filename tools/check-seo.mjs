@@ -80,6 +80,35 @@ for (const page of pages) {
     `${label}: localized placeholders ${page.lang === 'it' ? 'present (source)' : 'resolved'}`);
 }
 
+// legal pages: lighter surface, same language/canonical/hreflang contract
+const legalPages = [
+  { file: 'privacy.html', lang: 'it', canonical: `${BASE}/privacy` },
+  { file: 'en/privacy.html', lang: 'en', canonical: `${BASE}/en/privacy` },
+  { file: 'cookie.html', lang: 'it', canonical: `${BASE}/cookie` },
+  { file: 'en/cookie.html', lang: 'en', canonical: `${BASE}/en/cookie` },
+];
+for (const page of legalPages) {
+  const path = join(ROOT, page.file);
+  if (!existsSync(path)) {
+    add(false, `${page.file} missing`);
+    continue;
+  }
+  const html = readFileSync(path, 'utf8');
+  add(html.startsWith('<!DOCTYPE html>'), `${page.file}: doctype`);
+  add(new RegExp(`<html lang="${page.lang}">`).test(html), `${page.file}: <html lang="${page.lang}">`);
+  add(html.includes(`<link rel="canonical" href="${page.canonical}">`), `${page.file}: canonical`);
+  add((html.match(/<link rel="alternate" hreflang="(it|en|x-default)"/g) || []).length === 3,
+    `${page.file}: 3 hreflang alternates`);
+  add(/<meta name="description" content="[^"]{80,}/.test(html), `${page.file}: meta description`);
+  add(html.includes('<link rel="icon" href="/favicon.svg"'), `${page.file}: favicon`);
+  add(!/noindex/.test(html), `${page.file}: indexable`);
+}
+// the booking form and the footer must link the legal pages
+const itHome = readFileSync(join(ROOT, 'index.html'), 'utf8');
+add(itHome.includes('<a href="/privacy">'), 'index.html: privacy link present');
+add(itHome.includes('<a href="/cookie">'), 'index.html: cookie link present');
+add(itHome.includes('informativa privacy'), 'index.html: consent note next to the booking form');
+
 // the Italian-only page must be clean and the English page must have no Italian left
 const itPage = readFileSync(join(ROOT, 'index.html'), 'utf8');
 const enPage = readFileSync(join(ROOT, 'en/index.html'), 'utf8');
@@ -96,11 +125,11 @@ add(/Sitemap: https:\/\/\S+\/sitemap\.xml/.test(robots), 'robots.txt: sitemap re
 add(/Disallow: \/admin/.test(robots), 'robots.txt: admin disallowed');
 
 const sitemap = readFileSync(join(ROOT, 'sitemap.xml'), 'utf8');
-for (const loc of [`${BASE}/`, `${BASE}/en/`]) {
+for (const loc of [`${BASE}/`, `${BASE}/en/`, `${BASE}/privacy`, `${BASE}/en/privacy`, `${BASE}/cookie`, `${BASE}/en/cookie`]) {
   add(sitemap.includes(`<loc>${loc}</loc>`), `sitemap.xml: ${loc}`);
 }
-add((sitemap.match(/hreflang="x-default"/g) || []).length === 2, 'sitemap.xml: x-default on both URLs');
-add((sitemap.match(/<url>/g) || []).length === 2, 'sitemap.xml: 2 URLs');
+add((sitemap.match(/hreflang="x-default"/g) || []).length === 6, 'sitemap.xml: x-default on all URLs');
+add((sitemap.match(/<url>/g) || []).length === 6, 'sitemap.xml: 6 URLs');
 
 // the admin dashboard must stay out of the index
 add(/name="robots" content="noindex/.test(readFileSync(join(ROOT, 'admin.html'), 'utf8')), 'admin.html: noindex');

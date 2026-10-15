@@ -3005,3 +3005,70 @@ html.js [data-aos].is-visible {
     margin-bottom: var(--space-32);
   }
 }
+
+/* ==========================================================================
+   20. Legal pages (privacy, cookie)
+   ========================================================================== */
+.legal {
+  padding: var(--space-48) 0 var(--space-64);
+}
+
+.legal .container {
+  max-width: 780px;
+}
+
+.legal-top {
+  font-size: 0.9rem;
+  margin-bottom: var(--space-32);
+}
+
+.legal h1 {
+  font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+  margin-bottom: var(--space-8);
+}
+
+.legal-meta {
+  font-size: 0.85rem;
+  opacity: 0.65;
+  margin-bottom: var(--space-32);
+}
+
+.legal h2 {
+  font-size: 1.15rem;
+  margin: var(--space-32) 0 var(--space-8);
+}
+
+.legal p,
+.legal li {
+  line-height: 1.75;
+}
+
+.legal ul {
+  margin: var(--space-8) 0 var(--space-16) var(--space-24);
+  list-style: disc;
+}
+
+.legal code {
+  font-size: 0.9em;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: rgba(26, 60, 94, 0.07);
+}
+
+.legal-back {
+  margin-top: var(--space-48);
+}
+
+.footer-legal {
+  margin-top: var(--space-8);
+}
+
+.footer-legal a {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.footer-legal-sep {
+  opacity: 0.5;
+  padding: 0 0.35rem;
+}

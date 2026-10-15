@@ -179,6 +179,10 @@ html = swap(
   'footer language link'
 );
 
+// ── 6c. legal page links (the EN copy must point at the /en/ twins) ───────
+html = swap(html, 'href="/privacy"', 'href="/en/privacy"', 'privacy links', 2); // 2 == after the Italian spans were stripped
+html = swap(html, 'href="/cookie"', 'href="/en/cookie"', 'cookie links', 1);
+
 // ── 6b. root-absolute asset paths ─────────────────────────────────────────
 // index.html lives at /, this copy at /en/: every relative css/js/images URL would
 // resolve under /en/ and 404. `#anchor` links stay relative (they are same-page).
