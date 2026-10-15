@@ -14,8 +14,9 @@ elencati (passi 2, 3, 6) e vanno eseguiti in un task separato.
 
 ## 1. Prima cosa: "ag4" è un refuso di GA4
 
-Nel repository non esiste **niente** chiamato `ag4`: `grep -rniE "\bag4\b"` su tutto il progetto
-dà zero risultati. Lo strumento analytics citato dalla vision è **GA4 = Google Analytics 4**
+Nel sito, negli script e nella documentazione preesistente non esiste **niente** chiamato `ag4`:
+l'unica occorrenza di quella stringa nel progetto è questa guida. Lo strumento analytics citato
+dalla vision è **GA4 = Google Analytics 4**
 (`docs/vision.md`, riga 47: «Tool: GA4 (free, familiar) or Plausible (privacy-first, paid)»;
 `docs/seo-marketing-review.md`, riga 122: «Add GA4 (or Plausible)»).
 
@@ -120,7 +121,9 @@ Le tre frecce che contano: **sito → tag → GA4** (misura il comportamento), *
    owner action n. 1 della vision.
 3. **Pagine legali + consenso.** GA4 usa cookie: prima di raccogliere dati serve privacy policy /
    cookie notice (owner action n. 4 della vision; punto 5 delle owner actions della review).
-   Finché non ci sono, si installa il tag in **Consent Mode** con default "denied".
+   Finché non ci sono, si installa il tag in **Consent Mode** con default "denied" — cioè
+   *advanced consent mode*: le richieste verso Google partono comunque, senza cookie e senza
+   identificatori (dettagli e alternativa al passo 2.1).
 4. **Consapevolezza sull'URL:** il sito è su `*.web.app`, che non è un dominio tuo → in GSC si
    usa una proprietà **Prefisso URL** con verifica via tag HTML, *non* una proprietà Dominio (DNS).
 5. **Decisione GA4 vs Plausible** (vision, riga 47). Qui si assume GA4.
@@ -148,6 +151,14 @@ quest'ordine:
    default `denied`). Un solo file da editare: `en/index.html` è **generato** da
    `tools/build-en.mjs`, che copia la pagina e sostituisce solo i metadati IT→EN, quindi il tag
    finisce in entrambe le lingue.
+   - Il Consent Mode qui prescritto è quello **advanced**: `gtag('consent', 'default', {… 'denied'})`
+     **prima** di caricare `gtag.js`. Da sapere: in stato "denied" le richieste a
+     `google-analytics.com` **partono lo stesso**, come ping senza cookie (`…/g/collect?…&gcs=G100`).
+     Il consenso governa l'uso di cookie e identificatori, non l'esistenza della richiesta.
+   - Se si vuole **zero traffico** verso Google prima del consenso serve il *basic consent mode*:
+     `gtag.js` non viene caricato finché il banner non concede (e la CSP può omettere gli host
+     analytics finché non c'è consenso). Si perde la modellazione dei dati. Sceglierne uno dei due
+     e dirlo nel banner: cambia l'installazione e il check della sezione 6.
 2. **`firebase.json` → header `Content-Security-Policy`**: la CSP attuale (`script-src 'self'
    'unsafe-inline' https://www.gstatic.com https://cdn.jsdelivr.net https://maps.googleapis.com`;
    `connect-src … solo googleapis/firebase/gstatic`) **blocca** gtag. Da aggiungere:
@@ -257,9 +268,16 @@ pannello `/admin`). `gallery_open` → click su una foto; `calendar_opened`/`dat
 il calendario e scegliere due date; `booking_bar_click` → click sulla barra sticky dopo aver
 scrollato l'hero.
 
-**Consenso** — con Consent Mode attivo, in stato "rifiutato" dal banner **non** deve partire
-traffico verso GA4 (controlla la rete nella console del browser): nessuna richiesta a
-`google-analytics.com`.
+**Consenso** — il check dipende dal modo scelto al passo 2.1:
+
+- *Advanced consent mode* (default, quello descritto al passo 2.1): in stato "rifiutato" le
+  richieste verso GA4 **partono comunque**, come ping senza cookie — non è un guasto. Il check
+  corretto: in DevTools → Application → Cookies **nessun** cookie `_ga` / `_gid`; nel tab Rete le
+  richieste presenti a `google-analytics.com/g/collect` portano `gcs=G100`.
+- *Basic consent mode*: in stato "rifiutato" **nessuna** richiesta a `google-analytics.com`, e
+  `window.dataLayer` senza eventi di misurazione.
+
+Dopo il consenso il check si inverte: compaiono `_ga`/`_gid` e le richieste portano `gcs=G111`.
 
 **Search Console** — "Proprietà verificata"; **Sitemap** → "Operazione riuscita" con ≥ 2 URL;
 **Controllo URL** su `/` e `/en/` → "URL nella sitemap", "Pubblicazione possibile", nessun errore
@@ -283,7 +301,8 @@ collegata, e il report "Search Console" si popola entro 48 h.
 - [ ] Proprietà GSC (Prefisso URL) verificata con meta tag deployato
 - [ ] `sitemap.xml` inviata in GSC, stato "Operazione riuscita"
 - [ ] GA4 ↔ Search Console collegati, report "Search Console" visibile in GA4
-- [ ] Consenso (Consent Mode) e pagine privacy/cookie pubblicate
+- [ ] Consenso: modo scelto (advanced o basic) dichiarato nel banner, check della sezione 6
+      superato, pagine privacy/cookie pubblicate
 - [ ] Tutti gli eventi del measurement plan emessi (e `phone_click` risolto: link `tel:` aggiunto
       oppure evento rimandato esplicitamente)
 - [ ] `booking_request_submitted` marcato come evento chiave in GA4
