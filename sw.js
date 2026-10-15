@@ -20,17 +20,10 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
-  const note = payload.notification || {};
-  self.registration.showNotification(note.title || 'Nuova richiesta — Rifugio Tavolara', {
-    body: note.body || 'Apri il pannello per gestirla.',
-    icon: '/images/icon-192.png',
-    badge: '/images/icon-192.png',
-    lang: 'it',
-    tag: 'villast-request',
-    data: { link: (payload.fcmOptions && payload.fcmOptions.link) || '/admin' }
-  });
-});
+// ponytail: no onBackgroundMessage — the SDK displays the `notification` payload
+// itself (title/body/icon/tag come from the notifier's webpush.notification block).
+// Showing it here too displayed every push twice; `notificationclick` below still runs.
+
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
