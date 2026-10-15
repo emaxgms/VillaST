@@ -48,11 +48,12 @@ No Cloud Functions, no Blaze plan, no server of ours.
 | Emulators | Firestore `127.0.0.1:8081`, Auth `9099`, UI off (`firebase.json`, for the rules suite) |
 | FCM web push | VAPID **public** key in `js/notify-client.js`; SW `sw.js` (scope `/admin`) |
 | Notifier | Apps Script owned by `rifugiotavolara.st@gmail.com`; service-account JSON in Script Properties (`FIREBASE_SA`); trigger `tick()` every 5 min |
-| CI/CD | GitHub Actions, secret `FIREBASE_TOKEN`: PR → hosting preview channel `pr-<n>`; push to `main` → `deploy --only hosting,firestore:rules,firestore:indexes` |
+| CI/CD | GitHub Actions, secret `FIREBASE_TOKEN`: PR → hosting preview channel `pr-<n>`; push to `main` → `deploy --only hosting,firestore:rules,firestore:indexes`. Both run **only when the change can change the deploy**: `paths-ignore: **.md, docs/**, tools/**, test/**, villa/**, package.json` |
 
 `firebase.json` also carries: `cleanUrls`, the `/admin` → `admin.html` rewrite, a CSP + security
 headers, `no-cache` for HTML/CSS/JS (images 1 day), and the deploy ignore list (`**/*.md`, `docs/**`,
-`tools/**`, `test/**`, `.github/**` — none of them ship to the web).
+`tools/**`, `test/**`, `.github/**` — none of them ship to the web). The workflows carry the same six
+patterns as a trigger filter (negative list: a new, unlisted path still triggers a deploy).
 
 ### Data model (Firestore)
 
