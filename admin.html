@@ -98,6 +98,14 @@
           <text>Prenotazioni</text>
         </a>
 
+        <a href="#" class="sidebar-link" data-panel="pricing">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="1" x2="12" y2="23"></line>
+            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+          </svg>
+          <text>Prezzi</text>
+        </a>
+
         <a href="#" class="sidebar-link" data-panel="settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"></circle>
@@ -239,6 +247,72 @@
               </tr>
             </tbody>
           </table>
+        </div>
+      </section>
+
+      <!-- ==============================================
+           PREZZI
+           ============================================== -->
+      <section id="pricing-panel" class="dash-panel" style="display:none">
+        <div class="panel-header">
+          <div class="panel-title">
+            <h2>Prezzi</h2>
+            <p class="panel-sub">Tariffe pubblicate in homepage e usate per il preventivo nel form di prenotazione.</p>
+          </div>
+        </div>
+
+        <div class="settings-list">
+          <div class="setting-card">
+            <h3>Prezzo base</h3>
+            <p>Usato quando una data non rientra in nessuna stagione.</p>
+            <div class="price-rows">
+              <div class="price-row price-row--two">
+                <span class="price-row__label">Prezzo base</span>
+                <input id="pricing-base" type="number" min="1" step="1" inputmode="numeric" aria-label="Prezzo base, euro per notte">
+              </div>
+            </div>
+          </div>
+
+          <div class="setting-card">
+            <h3>Stagioni</h3>
+            <p>Finestre fisse: Bassa ott&ndash;apr &middot; Media mag&ndash;giu, set &middot; Alta lug&ndash;ago. Puoi cambiare prezzo e notti minime.</p>
+            <div class="price-rows">
+              <div class="price-row price-row--head"><span></span><span>&euro; / notte</span><span>Notti min.</span></div>
+              <div class="price-row">
+                <span class="price-row__label">Bassa stagione</span>
+                <input id="pricing-low-price" type="number" min="1" step="1" inputmode="numeric" aria-label="Prezzo bassa stagione, euro per notte">
+                <input id="pricing-low-min" type="number" min="1" step="1" inputmode="numeric" aria-label="Notti minime bassa stagione">
+              </div>
+              <div class="price-row">
+                <span class="price-row__label">Media stagione</span>
+                <input id="pricing-mid-price" type="number" min="1" step="1" inputmode="numeric" aria-label="Prezzo media stagione, euro per notte">
+                <input id="pricing-mid-min" type="number" min="1" step="1" inputmode="numeric" aria-label="Notti minime media stagione">
+              </div>
+              <div class="price-row">
+                <span class="price-row__label">Alta stagione</span>
+                <input id="pricing-high-price" type="number" min="1" step="1" inputmode="numeric" aria-label="Prezzo alta stagione, euro per notte">
+                <input id="pricing-high-min" type="number" min="1" step="1" inputmode="numeric" aria-label="Notti minime alta stagione">
+              </div>
+            </div>
+          </div>
+
+          <div class="setting-card">
+            <h3>Periodi speciali</h3>
+            <p>Prezzi per date particolari, ad esempio Ferragosto. Per una sola data lascia vuoto &laquo;Al&raquo;.</p>
+            <ul id="specials-list" class="specials-list"></ul>
+            <div class="specials-add">
+              <label class="price-field"><span>Dal</span><input id="special-from" type="date"></label>
+              <label class="price-field"><span>Al (opzionale)</span><input id="special-to" type="date"></label>
+              <label class="price-field"><span>&euro; / notte</span><input id="special-price" type="number" min="1" step="1" inputmode="numeric"></label>
+              <label class="price-field"><span>Etichetta (opz.)</span><input id="special-label" type="text" maxlength="40" placeholder="Ferragosto"></label>
+              <button id="special-add" class="btn-secondary" type="button">Aggiungi</button>
+            </div>
+          </div>
+
+          <div class="setting-actions">
+            <button id="pricing-save" class="btn-primary" type="button">Salva prezzi</button>
+            <button id="pricing-reload" class="btn-secondary" type="button">Ricarica</button>
+          </div>
         </div>
       </section>
 

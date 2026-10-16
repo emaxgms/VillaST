@@ -117,8 +117,10 @@ Title `Nuova richiesta — Rifugio Tavolara`; body `<nome> · <checkIn>–<check
 
 ## Out of scope
 
-- Rejection email to guests (only confirmation).
-- Payments / prices / revenue (no price data in the model).
+- Rejection email to guests — **shipped after v4** (`notify.gs` flow 2b, armed by
+  `rejectMailState:'new'` written by the admin panel on Rifiuta).
+- Payments / prices / revenue — **prices shipped after v4** (`pricing/config` doc + admin "Prezzi"
+  panel + live quote in the booking form, all via `js/pricing.js`); payments remain out of scope.
 - Multi-user/roles; admin i18n (Italian only).
 - Public-site changes beyond the contact email and the two new reservation fields.
 

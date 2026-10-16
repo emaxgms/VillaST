@@ -43,12 +43,14 @@ import {
   onSnapshot,
   getDoc,
   getDocs,
+  setDoc,
   doc,
   query,
   orderBy,
   writeBatch,
   serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { DEFAULT_PRICING, normalizePricing } from './pricing.js';
 
 let unsubscribeReservations = null;
 let adminCalendarInstance = null;
@@ -393,9 +395,11 @@ async function rejectReservation(id) {
     if (data.status === 'confirmed') {
       dates.forEach(d => batch.delete(doc(db, 'availability', d)));
     }
-    batch.update(resRef, { status: 'rejected' });
+    // rejectMailState arms the notifier's rejection email (one per decline;
+    // reservations without the field — e.g. pre-existing rejections — are never mailed).
+    batch.update(resRef, { status: 'rejected', rejectMailState: 'new' });
     await batch.commit();
-    showAdminMessage('Prenotazione rifiutata.', 'success');
+    showAdminMessage('Prenotazione rifiutata. L\'ospite riceve l\'email entro pochi minuti.', 'success');
   } catch (err) {
     console.error('Reject error:', err);
     showAdminMessage('Errore durante l\'aggiornamento.', 'error');
@@ -863,12 +867,121 @@ async function saveDraftChanges(popup, resId) {
   }
 }
 
+/* ─── pricing panel (Prezzi) ──────────────────────────────────────────── */
+
+let pricingLoaded = false;
+let pricingOverrides = []; // local draft of the special periods; committed by [Salva prezzi]
+
+function pricingEl(id) { return document.getElementById(id); }
+function pricingNum(id) { const el = pricingEl(id); const n = el ? Math.round(Number(el.value)) : NaN; return Number.isFinite(n) ? n : NaN; }
+function pricingSet(id, v) { const el = pricingEl(id); if (el) el.value = String(v); }
+
+function fmtDateIt(iso) {
+  const [y, m, d] = String(iso || '').split('-');
+  return d ? `${d}/${m}/${y}` : String(iso || '');
+}
+
+function renderSpecials() {
+  const list = pricingEl('specials-list');
+  if (!list) return;
+  list.innerHTML = pricingOverrides.length
+    ? pricingOverrides.map((o, i) => `
+      <li class="special-row">
+        <span class="special-row__label">${escapeHtml(o.label || 'Periodo speciale')} &middot; ${fmtDateIt(o.from)}${o.to !== o.from ? ' &rarr; ' + fmtDateIt(o.to) : ''}</span>
+        <span class="special-row__price">&euro;${o.price}/notte</span>
+        <button type="button" class="special-row__del" data-remove="${i}" aria-label="Rimuovi periodo">&times;</button>
+      </li>`).join('')
+    : '<li class="special-row special-row--empty">Nessun periodo speciale: le tariffe seguono le stagioni.</li>';
+}
+
+async function loadPricingPanel() {
+  try {
+    const snap = await getDoc(doc(db, 'pricing', 'config'));
+    const cfg = snap.exists() ? normalizePricing(snap.data()) : DEFAULT_PRICING;
+    pricingSet('pricing-base', cfg.base);
+    ['low', 'mid', 'high'].forEach((key) => {
+      pricingSet(`pricing-${key}-price`, cfg.seasons[key].price);
+      pricingSet(`pricing-${key}-min`, cfg.seasons[key].minNights);
+    });
+    pricingOverrides = cfg.overrides.map((o) => ({ ...o }));
+    renderSpecials();
+    pricingLoaded = true;
+  } catch (err) {
+    console.error('Load pricing failed:', err);
+    showAdminMessage('Impossibile caricare i prezzi salvati.', 'error');
+  }
+}
+
+function addSpecial() {
+  const from = pricingEl('special-from') ? pricingEl('special-from').value : '';
+  const to = pricingEl('special-to') ? pricingEl('special-to').value : '';
+  const price = pricingNum('special-price');
+  const label = pricingEl('special-label') ? pricingEl('special-label').value.trim() : '';
+  if (!from) { showAdminMessage('Indica la data di inizio del periodo speciale.', 'error'); return; }
+  if (!Number.isFinite(price) || price <= 0) { showAdminMessage('Indica il prezzo del periodo speciale (€/notte).', 'error'); return; }
+  if (to && to < from) { showAdminMessage('La data di fine è prima di quella di inizio.', 'error'); return; }
+  pricingOverrides.push({ from, to: to || from, price, ...(label ? { label } : {}) });
+  ['special-from', 'special-to', 'special-price', 'special-label'].forEach((id) => pricingSet(id, ''));
+  renderSpecials();
+  showAdminMessage('Periodo aggiunto. Ricorda di salvare.', 'success');
+}
+
+async function savePricing() {
+  const base = pricingNum('pricing-base');
+  if (!Number.isFinite(base) || base <= 0) { showAdminMessage('Prezzo base non valido.', 'error'); return; }
+  const seasons = {};
+  for (const key of ['low', 'mid', 'high']) {
+    const price = pricingNum(`pricing-${key}-price`);
+    const minNights = pricingNum(`pricing-${key}-min`);
+    if (!Number.isFinite(price) || price <= 0) { showAdminMessage('Controlla i prezzi delle stagioni.', 'error'); return; }
+    if (!Number.isFinite(minNights) || minNights <= 0) { showAdminMessage('Controlla le notti minime delle stagioni.', 'error'); return; }
+    seasons[key] = { price, minNights };
+  }
+  const btn = pricingEl('pricing-save');
+  if (btn) btn.disabled = true;
+  try {
+    await setDoc(doc(db, 'pricing', 'config'), {
+      base,
+      seasons,
+      overrides: pricingOverrides.map((o) => ({ from: o.from, to: o.to, price: o.price, ...(o.label ? { label: o.label } : {}) })),
+      updatedAt: serverTimestamp()
+    });
+    showAdminMessage('Prezzi salvati: la homepage li mostra subito.', 'success');
+  } catch (err) {
+    console.error('Save pricing failed:', err);
+    showAdminMessage('Impossibile salvare i prezzi. Riprova.', 'error');
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
+function wirePricingPanel() {
+  const addBtn = pricingEl('special-add');
+  if (addBtn && !addBtn._wired) { addBtn._wired = true; addBtn.addEventListener('click', addSpecial); }
+  const saveBtn = pricingEl('pricing-save');
+  if (saveBtn && !saveBtn._wired) { saveBtn._wired = true; saveBtn.addEventListener('click', savePricing); }
+  const reloadBtn = pricingEl('pricing-reload');
+  if (reloadBtn && !reloadBtn._wired) { reloadBtn._wired = true; reloadBtn.addEventListener('click', loadPricingPanel); }
+  const list = pricingEl('specials-list');
+  if (list && !list._wired) {
+    list._wired = true;
+    list.addEventListener('click', (e) => {
+      const btn = e.target.closest('[data-remove]');
+      if (!btn) return;
+      pricingOverrides.splice(Number(btn.dataset.remove), 1);
+      renderSpecials();
+      showAdminMessage('Periodo rimosso. Ricorda di salvare.', 'success');
+    });
+  }
+}
+
 /* ─── panels / settings / auth ────────────────────────────────────────── */
 
 const PANELS = {
   requests: { title: 'Richieste' },
   calendar: { title: 'Calendario' },
   reservations: { title: 'Prenotazioni' },
+  pricing: { title: 'Prezzi' },
   settings: { title: 'Impostazioni' }
 };
 
@@ -893,6 +1006,11 @@ function activatePanel(name) {
       adminCalendarInstance = null;
     }
     initAdminCalendarSection();
+  }
+
+  if (name === 'pricing') {
+    wirePricingPanel();
+    if (!pricingLoaded) loadPricingPanel();
   }
 }
 

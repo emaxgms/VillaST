@@ -142,6 +142,22 @@ async function main() {
   st = await req('DELETE', `/availability/2026-07-99`, {});
   check('anonymous cannot delete availability', st === 403, `status ${st}`);
 
+  // ── pricing config (public read, admin write) ──────────────────────────
+  st = await req('POST', `/pricing?documentId=config`, { token: ADMIN, body: { fields: { base: I(80) } } });
+  check('admin can write the pricing config', st === 200, `status ${st}`);
+
+  st = await req('GET', `/pricing/config`, {});
+  check('pricing config is publicly readable', st === 200, `status ${st}`);
+
+  st = await req('PATCH', `/pricing/config?updateMask.fieldPaths=base`, { token: USER, body: { fields: { base: I(999) } } });
+  check('non-admin cannot change pricing', st === 403, `status ${st}`);
+
+  // ── rejection email arming: admin sets status + rejectMailState together ──
+  st = await req('PATCH', `/reservations/pending_${RUN}?updateMask.fieldPaths=status&updateMask.fieldPaths=rejectMailState`, {
+    token: ADMIN, body: { fields: { status: S('rejected'), rejectMailState: S('new') } }
+  });
+  check('admin can reject with rejectMailState', st === 200, `status ${st}`);
+
   console.log(`\n${passed} passed, ${failures} failed`);
   process.exitCode = failures === 0 ? 0 : 1;
 }

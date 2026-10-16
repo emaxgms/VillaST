@@ -15,10 +15,11 @@ backend. One generated file (`en/index.html`) is committed, never built in CI.
   docs-only branch or PR runs no Action at all.
 - The host (non-technical, phone-first) runs the rental from `/admin`: one push notification per new
   request (FCM web push to the PWA installed from Safari), accept/decline in two taps, and the
-  guest's confirmation email sent from the villa Gmail by a Google Apps Script notifier — free tier,
-  no Cloud Functions, no Blaze plan. Email text + villa facts live in `mailSubject_`/`mailHtml_` +
-  the `VILLA_` constants of that script; pushes are rendered by the browser from the payload, never
-  re-displayed in `sw.js` (a second display path duplicates every notification).
+  guest emails — confirmation on accept, polite decline on reject — sent from the villa Gmail by a
+  Google Apps Script notifier — free tier, no Cloud Functions, no Blaze plan. Email text + villa
+  facts live in `mailSubject_`/`mailHtml_`/`rejectMail*_` + the `VILLA_` constants of that script;
+  pushes are rendered by the browser from the payload, never re-displayed in `sw.js` (a second
+  display path duplicates every notification).
   Setup: `tools/apps-script/README.md`; design + flows:
   `docs/admin-panel-v4-design.md`; rules suite: `test/rules.test.mjs`.
 - Firebase project: `villa-serenita-san-teodoro`.
@@ -29,22 +30,24 @@ backend. One generated file (`en/index.html`) is committed, never built in CI.
 
 - `index.html` — public landing page, **Italian, single source of truth for the markup**.
 - `en/index.html` — English page, generated (never hand-edit; it gets overwritten).
-- `admin.html` — admin panel (login; panels Richieste/Calendario/Prenotazioni/Impostazioni;
+- `admin.html` — admin panel (login; panels Richieste/Calendario/Prenotazioni/Prezzi/Impostazioni;
   `noindex`). Bottom tab bar on phones, sidebar on desktop.
 - `manifest.webmanifest` + `sw.js` — installable PWA for `/admin`. The service worker is push-only
   (no fetch handler, caches nothing) so the public site behaves exactly as without it.
-- `css/` — `style.css` (design tokens + sections 1–17, then 18 "modern refresh" and 19 "visual
-  redesign" appended as override layers), `admin.css` (v4 light "Casa" theme), `calendar.css`
-  (guest Mediterranean + admin light theme).
+- `css/` — `style.css` (design tokens + sections 1–17, then 18 "modern refresh", 19 "visual
+  redesign" and 20 "price note + form estimate" appended as override layers), `admin.css` (v4 light
+  "Casa" theme), `calendar.css` (guest Mediterranean + admin light theme).
 - `js/` — `firebase-config.js` (init/exports `db`+`auth`), `app.js` (reveal-on-scroll via
-  IntersectionObserver, navbar, sticky booking bar, counters, lightbox), `reservations.js`
-  (booking form → Firestore; writes `lang` + `pushState`), `calendar.js` (Flatpickr; admin uses the
-  Italian `ADMIN_LOCALE`), `day-state.js`, `admin.js` (auth, request queue, CRUD, day sheet),
-  `notify-client.js` (FCM token registration).
+  IntersectionObserver, navbar, sticky booking bar, counters, lightbox; renders `pricing/config`),
+  `reservations.js` (booking form → Firestore; writes `lang` + `pushState` + `quoteTotal`),
+  `pricing.js` (pure price model: seasons, date overrides, quotes — homepage, form and admin panel),
+  `calendar.js` (Flatpickr; admin uses the Italian `ADMIN_LOCALE`), `day-state.js`, `admin.js`
+  (auth, request queue, CRUD, day sheet, Prezzi panel), `notify-client.js` (FCM token registration).
 - `tools/` — `build-en.mjs` (generates `/en/` and asserts parity), `check-seo.mjs` (SEO/structural
   gate), `optimize-images.py` (OG image + apple-touch-icon), `apps-script/` (notifier source +
   deploy checklist).
-- `test/rules.test.mjs` — Firestore rules suite (REST against the emulator, no npm deps).
+- `test/` — `rules.test.mjs` (Firestore rules vs the emulator), `pricing.test.mjs` (price model),
+  `notify.test.mjs` (email rendering) — plain node, no npm deps.
 - `firestore.rules` + `firestore.indexes.json` — the only server-side layer; admin access = an
   `admins/{uid}` document.
 - `DEV_NOTES.md` — developer guide (read before structural changes).
@@ -57,7 +60,9 @@ backend. One generated file (`en/index.html`) is committed, never built in CI.
 ```bash
 python3 -m http.server 8099      # then open / and /en/
 node tools/build-en.mjs          # regenerate en/index.html after ANY index.html edit
-node tools/check-seo.mjs         # 55 assertions; non-zero exit on drift (the de-facto test suite)
+node tools/check-seo.mjs         # structural/SEO gate; non-zero exit on drift (the de-facto suite)
+node test/pricing.test.mjs       # price model: seasons, overrides, quotes
+node test/notify.test.mjs        # confirmation/rejection email rendering
 node --input-type=module --check < js/app.js   # syntax-check a module
 
 # Firestore rules (port 8081 — see firebase.json "emulators"; 8080 is taken on this host)
@@ -71,8 +76,9 @@ firebase deploy --only firestore:rules
 firebase deploy --only firestore:indexes
 ```
 
-No test framework: verification means `check-seo.mjs` plus exercising the flow you touched in a
-browser (booking form, admin login, calendar, sticky bar, both language pages) and the console.
+No test framework beyond the plain-node scripts in `test/`: verification means `check-seo.mjs` and
+those node checks, plus exercising the flow you touched in a browser (booking form, admin login,
+calendar, sticky bar, both language pages) and the console.
 
 ## Conventions and gotchas
 
@@ -106,5 +112,8 @@ browser (booking form, admin login, calendar, sticky bar, both language pages) a
   `firebase.json` are kept out of the deploy but not out of the triggers, and `firestore.rules` /
   `firestore.indexes.json` must keep triggering them (the merge workflow deploys the rules). Add a new
   non-deployed top-level path to both lists.
-- The sticky booking bar rate is hard-coded twice (`index.html` bar + the Low Season pricing card):
-  update both.
+- Prices live in the `pricing/config` Firestore doc (base price + per-season price/min-nights +
+  date overrides) edited from the admin **Prezzi** panel; `js/pricing.js` is the single price model
+  behind the homepage cards, the sticky bar and the booking-form quote. The static HTML keeps
+  fallback values for no-JS; per-night precedence is override > season > base; the form stores
+  `quoteTotal` on the request and the confirmation email quotes it when present.

@@ -623,3 +623,41 @@ input, select { font-family: inherit; color: inherit; }
   .dash-header h1 { font-size: 1.6rem; }
   .admin-badge { max-width: 130px; }
 }
+
+/* ─── Prezzi panel ────────────────────────────────────────────────────── */
+
+.price-rows { display: flex; flex-direction: column; gap: 0.45rem; margin-top: 0.6rem; }
+
+.price-row { display: grid; grid-template-columns: 1.4fr 84px 84px; gap: 0.45rem; align-items: center; }
+.price-row--two { grid-template-columns: 1fr 110px; }
+.price-row--head { margin-bottom: 0.1rem; }
+.price-row--head span { font-size: 0.68rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-muted); text-align: right; }
+.price-row__label { font-size: 0.9rem; }
+
+.price-row input,
+.price-field input {
+  width: 100%; min-height: 42px; padding: 0.5rem 0.6rem;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); font-size: 0.95rem;
+}
+.price-row input:focus,
+.price-field input:focus { outline: 2px solid var(--terra); outline-offset: 1px; }
+
+.specials-list { list-style: none; margin: 0.7rem 0 0.9rem; display: flex; flex-direction: column; gap: 0.4rem; }
+.special-row {
+  display: flex; align-items: center; gap: 0.6rem;
+  padding: 0.5rem 0.7rem; border: 1px solid var(--border-soft); border-radius: var(--radius);
+  background: var(--surface-2);
+}
+.special-row__label { flex: 1; font-size: 0.9rem; }
+.special-row__price { font-weight: 600; white-space: nowrap; }
+.special-row__del {
+  padding: 0.2rem 0.45rem; border-radius: 8px; min-height: 34px; min-width: 34px;
+  font-size: 1.1rem; line-height: 1; color: var(--terra);
+}
+.special-row__del:hover { background: var(--terra-tint); }
+.special-row--empty { color: var(--text-muted); font-size: 0.88rem; border-style: dashed; background: transparent; }
+
+.specials-add { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.5rem; align-items: end; }
+.price-field { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text-muted); }
+.specials-add .btn-secondary { min-height: 42px; }

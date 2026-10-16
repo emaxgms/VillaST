@@ -4,8 +4,9 @@
  */
 
 import { db } from './firebase-config.js';
-import { collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { collection, addDoc, doc, getDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 import { loadBookedDates, initGuestCalendar, dateRangeHasConflict, formatDateISO } from './calendar.js';
+import { DEFAULT_PRICING, normalizePricing, quote } from './pricing.js';
 
 function sanitizeString(str) { return String(str).trim(); }
 function isValidEmail(email) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email); }
@@ -69,7 +70,42 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (loadingEl) loadingEl.style.display = 'none';
   }
 
-  initGuestCalendar(checkInEl, checkOutEl, bookedDates);
+  // Pricing (`pricing/config`): the quote next to the dates and the amount
+  // stored on the request. Missing doc or failed read → published defaults;
+  // never blocks the form.
+  let pricing = DEFAULT_PRICING;
+  try {
+    const pricingSnap = await getDoc(doc(db, 'pricing', 'config'));
+    if (pricingSnap.exists()) pricing = normalizePricing(pricingSnap.data());
+  } catch (err) {
+    console.warn('Could not load pricing config:', err);
+  }
+
+  const estimateEl = document.getElementById('price-estimate');
+
+  function updateEstimate() {
+    if (!estimateEl) return;
+    const { checkIn, checkOut } = getSelectedDateValues(checkInEl, checkOutEl);
+    if (!checkIn || !checkOut || checkOut <= checkIn) { estimateEl.hidden = true; estimateEl.innerHTML = ''; return; }
+    const q = quote(pricing, checkIn, checkOut);
+    if (!q.nights) { estimateEl.hidden = true; estimateEl.innerHTML = ''; return; }
+    const note = q.belowMin
+      ? t(`Soggiorno sotto il minimo di ${q.minNights} notti per questa stagione: la richiesta verr&agrave; valutata dall&rsquo;host.`,
+          `Stay below the ${q.minNights}-night minimum for this season: the host will review your request.`)
+      : t('Prezzo indicativo: pu&ograve; variare in alta stagione o in periodi particolari (es. Ferragosto).',
+          'Indicative price: it may change in high season or particular periods (e.g. Ferragosto).');
+    estimateEl.innerHTML =
+      `<strong class="price-estimate__total">${q.nights} ${t('notti', 'nights')} &middot; &euro;${q.total}</strong>` +
+      `<span class="price-estimate__note">${note}</span>`;
+    estimateEl.hidden = false;
+  }
+
+  const guestCalendar = initGuestCalendar(checkInEl, checkOutEl, bookedDates);
+  // flatpickr keeps its hooks in arrays after init — the pushed callback runs
+  // after the built-in one (which writes checkOutEl), so the quote sees both dates.
+  if (guestCalendar && guestCalendar.checkIn && Array.isArray(guestCalendar.checkIn.config.onChange)) {
+    guestCalendar.checkIn.config.onChange.push(updateEstimate);
+  }
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
@@ -107,11 +143,15 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = t('Invio...', 'Sending...'); }
 
+    const stayQuote = quote(pricing, checkIn, checkOut);
+
     try {
       await addDoc(collection(db, 'reservations'), {
         source: 'guest',
         name, email, phone, guests, checkIn, checkOut,
         status: 'pending',
+        // Indicative price shown to the guest at request time.
+        ...(stayQuote.nights ? { quoteTotal: stayQuote.total } : {}),
         // Consumed by the Apps Script notifier (tools/apps-script/notify.gs):
         // lang picks the confirmation email language, pushState marks the push
         // as not yet sent.
