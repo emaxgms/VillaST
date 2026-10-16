@@ -90,12 +90,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     const q = quote(pricing, checkIn, checkOut);
     if (!q.nights) { estimateEl.hidden = true; estimateEl.innerHTML = ''; return; }
     const note = q.belowMin
-      ? t(`Soggiorno sotto il minimo di ${q.minNights} notti per questa stagione: la richiesta verr&agrave; valutata dall&rsquo;host.`,
+      ? t(`Soggiorno sotto il minimo di ${q.minNights} ${q.minNights === 1 ? 'notte' : 'notti'} per questa stagione: la richiesta verr&agrave; valutata dall&rsquo;host.`,
           `Stay below the ${q.minNights}-night minimum for this season: the host will review your request.`)
       : t('Prezzo indicativo: pu&ograve; variare in alta stagione o in periodi particolari (es. Ferragosto).',
           'Indicative price: it may change in high season or particular periods (e.g. Ferragosto).');
     estimateEl.innerHTML =
-      `<strong class="price-estimate__total">${q.nights} ${t('notti', 'nights')} &middot; &euro;${q.total}</strong>` +
+      `<strong class="price-estimate__total">${q.nights} ${t(q.nights === 1 ? 'notte' : 'notti', q.nights === 1 ? 'night' : 'nights')} &middot; &euro;${q.total}</strong>` +
       `<span class="price-estimate__note">${note}</span>`;
     estimateEl.hidden = false;
   }

@@ -920,7 +920,7 @@ function addSpecial() {
   if (!from) { showAdminMessage('Indica la data di inizio del periodo speciale.', 'error'); return; }
   if (!Number.isFinite(price) || price <= 0) { showAdminMessage('Indica il prezzo del periodo speciale (€/notte).', 'error'); return; }
   if (to && to < from) { showAdminMessage('La data di fine è prima di quella di inizio.', 'error'); return; }
-  pricingOverrides.push({ from, to: to || from, price, ...(label ? { label } : {}) });
+  pricingOverrides.push({ id: `o${Date.now().toString(36)}`, from, to: to || from, price, ...(label ? { label } : {}) });
   ['special-from', 'special-to', 'special-price', 'special-label'].forEach((id) => pricingSet(id, ''));
   renderSpecials();
   showAdminMessage('Periodo aggiunto. Ricorda di salvare.', 'success');
@@ -943,7 +943,7 @@ async function savePricing() {
     await setDoc(doc(db, 'pricing', 'config'), {
       base,
       seasons,
-      overrides: pricingOverrides.map((o) => ({ from: o.from, to: o.to, price: o.price, ...(o.label ? { label: o.label } : {}) })),
+      overrides: pricingOverrides.map((o) => ({ ...(o.id ? { id: o.id } : {}), from: o.from, to: o.to, price: o.price, ...(o.label ? { label: o.label } : {}) })),
       updatedAt: serverTimestamp()
     });
     showAdminMessage('Prezzi salvati: la homepage li mostra subito.', 'success');
