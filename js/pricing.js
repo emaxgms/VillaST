@@ -121,9 +121,9 @@ export function applyHomepagePricing(cfg, root = document) {
     const min = card.querySelector('.pricing-min');
     if (min) {
       const it = min.querySelector('.it');
-      if (it) it.textContent = `min. ${season.minNights} notti`;
+      if (it) it.textContent = `min. ${season.minNights} ${season.minNights === 1 ? 'notte' : 'notti'}`;
       const en = min.querySelector('.en');
-      if (en) en.textContent = `min. ${season.minNights} nights`;
+      if (en) en.textContent = `min. ${season.minNights} ${season.minNights === 1 ? 'night' : 'nights'}`;
     }
   }
   const bar = root.getElementById ? root.getElementById('booking-bar') : null;

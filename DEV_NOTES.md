@@ -115,9 +115,62 @@ paid plan. Deploy checklist and quotas: `tools/apps-script/README.md`. Flow desi
 - To change it: edit the file here, then paste the whole file over the old content in the Apps Script
   editor and Save (the trigger survives). `checkSetup()` verifies the script still sees Firestore.
 
+### The rejection email (flow 2b)
+
+- Trigger: the host taps *Rifiuta* — requests card or day-sheet popover. Both paths call
+  `rejectReservation()` in `js/admin.js`, which writes `status: 'rejected'` **and**
+  `rejectMailState: 'new'` in one batch. The browser sends nothing.
+- Send: on the next tick, `mailRejected_()` queries `status == 'rejected'` filtered to
+  `rejectMailState == 'new'`, skips manual bookings (`source == 'admin'`) and rows with no `email`,
+  sends one mail from the villa Gmail via `MailApp` in the guest's `lang`, then writes
+  `rejectMailState: 'sent'` + `rejectMailSentAt`.
+- Exactly once per decline: the `rejectMailState` field is the whole mechanism. A reservation
+  rejected **before** the field existed has no `rejectMailState` and is never mailed retroactively;
+  manual blocks are never mailed at all. Same at-least-once guard as flow 2 (a crash between send and
+  PATCH can resend once).
+- Content: `rejectMailSubject_()` + `rejectMailHtml_()` in the same file; same paste step as flow 2.
+
 Firestore rules: `reservations` (read/update/delete), `availability` (create/delete),
 `pushTokens`, `pushTests` all require an `admins/{uid}` document; guests can still only create
 `pending` guest requests and read `availability`. `test/rules.test.mjs` covers both sides.
+
+## Prices: the `pricing/config` doc
+
+One Firestore doc and one model — `js/pricing.js` (pure, no firebase imports, node-tested). The
+homepage, the booking form and the admin panel all go through it, so a price is never written twice.
+
+```
+pricing/config   (public read / admin write — `firestore.rules`, covered by `test/rules.test.mjs`)
+{
+  base: 80,                                      // €/night fallback when no season matches
+  seasons: { low: {price, minNights}, mid: {...}, high: {...} },
+  overrides: [{ id, from, to, price, label? }],   // `to` empty or == from → single date
+  updatedAt
+}
+```
+
+- **Season windows are fixed in code** (`SEASON_OF_MONTH` in `js/pricing.js`), not editable:
+  low = Oct–Apr, mid = May/Jun/Sep, high = Jul/Aug. Min nights are per season and belong to the doc.
+- **Precedence per night: override > season > base.** The night starting on the date is what counts;
+  the most specific override wins (shortest span, ties → first in the list).
+- **Charged nights are `[checkIn, checkOut)`** — the check-out day is not charged.
+- **Fallback:** a missing or unreadable doc yields `DEFAULT_PRICING` (80 / 80·2 / 120·3 / 180·5),
+  which are also the numbers written in the static HTML, so an outage degrades to the published
+  prices with no JS error.
+- **Consumers**
+  - `js/app.js` → `applyHomepagePricing()` overwrites the three card amounts, the `min. N notti`
+    lines and the sticky-bar "da €X" (`cheapestNight()`). The `*` next to a card is wired in
+    `js/app.js`: tooltip on hover and on keyboard focus/tap, `aria-describedby`, and it stays
+    generic — **no special-period price is ever published on the homepage**.
+  - `js/reservations.js` → `quote()` once both dates are picked, rendered as `N notti · €total` plus
+    the min-nights notice (the strictest season minimum across the stay). Display only: it never
+    blocks the submit. The total is stored as `quoteTotal` on the reservation, and the confirmation
+    email adds the `Totale` row only when `quoteTotal` is present.
+  - `js/admin.js` **Prezzi** panel → `loadPricingPanel()` / `renderSpecials()` / `addSpecial()` /
+    `savePricing()`. `savePricing` re-validates (positive numbers, `to` not before `from`) before it
+    replaces the whole doc, and reopening the panel re-reads it.
+- Special periods (e.g. Ferragosto) are editable in the panel and used for quotes only — the
+  homepage deliberately shows nothing but the `*` tooltip.
 
 ## How to Add a New Public Page
 
