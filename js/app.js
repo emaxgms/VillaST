@@ -7,6 +7,10 @@
  * `body.lang-en`, which the build sets on the English page.
  */
 
+import { db } from './firebase-config.js';
+import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { normalizePricing, applyHomepagePricing } from './pricing.js';
+
 // ─── Reveal on scroll ──────────────────────────────────────────────────────
 // Replaces the AOS library (it was 2 CDN requests + 900ms animations for this).
 // The markup API stays `data-aos` / `data-aos-delay`; the hidden start state is
@@ -242,3 +246,11 @@ if (galleryImages.length > 0) {
     if (e.key === 'ArrowRight') navigate(1);
   });
 }
+
+// ─── Live pricing ──────────────────────────────────────────────────────────
+// The static HTML carries the fallback values (they also serve no-JS); when
+// `pricing/config` exists the cards and the sticky bar show the host's real
+// prices. A missing doc or a failed read keeps the static values, silently.
+getDoc(doc(db, 'pricing', 'config'))
+  .then((snap) => { if (snap.exists()) applyHomepagePricing(normalizePricing(snap.data())); })
+  .catch((err) => console.warn('Pricing config unavailable, keeping static prices:', err));

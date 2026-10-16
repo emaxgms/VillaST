@@ -3072,3 +3072,56 @@ html.js [data-aos].is-visible {
   opacity: 0.5;
   padding: 0 0.35rem;
 }
+
+/* ---------------------------------------------------------------
+   20. PRICE NOTE (asterisk tooltip) + BOOKING-FORM ESTIMATE
+   --------------------------------------------------------------- */
+
+.pricing-price { position: relative; }
+
+.pricing-note {
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: 0;
+  padding: 0 0 0 3px;
+  margin: 0;
+  font: inherit;
+  font-size: 0.5em;
+  line-height: 1;
+  vertical-align: super;
+  color: inherit;
+  cursor: help;
+}
+.pricing-note:focus { outline: 2px solid var(--color-sea); outline-offset: 3px; border-radius: 50%; }
+
+.pricing-tip {
+  display: none;
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: max-content;
+  max-width: min(280px, 76vw);
+  padding: 0.65rem 0.85rem;
+  background: var(--color-sea);
+  color: #fff;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  text-align: left;
+  border-radius: 10px;
+  box-shadow: 0 14px 34px rgba(26, 60, 94, 0.22);
+  z-index: 6;
+}
+.pricing-note:hover + .pricing-tip,
+.pricing-note:focus + .pricing-tip { display: block; }
+
+.price-estimate {
+  margin: 0 0 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px dashed rgba(26, 60, 94, 0.28);
+  border-radius: 12px;
+  background: rgba(26, 60, 94, 0.045);
+}
+.price-estimate__total { display: block; font-weight: 600; color: var(--color-sea); }
+.price-estimate__note { display: block; margin-top: 0.3rem; font-size: 0.85rem; color: var(--neutral-500); }

@@ -1,8 +1,9 @@
 # VillaST notifier (Google Apps Script)
 
 One file, hosted free on Google's servers, owned by **rifugiotavolara.st@gmail.com**.
-Every 5 minutes it pushes new booking requests to the host's iPhone (FCM web push)
-and emails the guest the confirmation when the host accepts, from the villa Gmail.
+Every 5 minutes it pushes new booking requests to the host's iPhone (FCM web push),
+emails the guest the confirmation when the host accepts and a polite decline when
+the host rejects the request — all from the villa Gmail.
 
 Source of truth: `notify.gs` (this directory). The live copy runs in the villa
 Google account — this repo file is the versioned source you paste/clasp-push.
@@ -46,6 +47,10 @@ Google account — this repo file is the versioned source you paste/clasp-push.
 - Dead push tokens (Apple/Mozilla answers 404/410) are deleted automatically.
 - Idempotency: every send is marked on the reservation (`pushState`/`mailState`)
   before the next tick, so a retry cannot double-send.
+- Rejection email: armed by `rejectMailState:'new'` (written by the admin panel
+  together with `status:'rejected'`); sent once in the guest's language, then
+  marked `'sent'` + `rejectMailSentAt`. Reservations rejected before this field
+  existed (no `rejectMailState`) are never mailed retroactively.
 - The script bypasses Firestore rules (service-account auth): that is what lets
   the rules stay closed to `admins/{uid}` only.
 

@@ -26,7 +26,8 @@ VillaST is a static website for a vacation rental villa in San Teodoro, Sardinia
 │   ├── reservations.js     Booking form submission to Firestore (+lang, +pushState)
 │   ├── calendar.js         Flatpickr calendar for availability (admin uses Italian locale)
 │   ├── day-state.js        Pure date helpers (node-testable, no imports)
-│   ├── admin.js            Admin panel (auth, request queue, reservation CRUD, day sheet)
+│   ├── pricing.js          Pure price model: seasons, date overrides, quotes (node-testable)
+│   ├── admin.js            Admin panel (auth, request queue, reservation CRUD, day sheet, Prezzi)
 │   └── notify-client.js    FCM web-push registration for the admin PWA
 │
 ├── tools/
@@ -36,6 +37,8 @@ VillaST is a static website for a vacation rental villa in San Teodoro, Sardinia
 │   └── apps-script/        Notifier (notify.gs) + deploy checklist (README.md)
 │
 ├── test/rules.test.mjs     Firestore rules suite (emulator, zero npm deps)
+├── test/pricing.test.mjs   Price-model checks (seasons, overrides, quotes, min-nights)
+├── test/notify.test.mjs    Confirmation/rejection email rendering checks
 ├── docs/seo-marketing-review.md      The SEO/marketing audit and the owner's action list
 ├── docs/admin-panel-v4-design.md     Admin panel v4 design (flows, criteria, setup)
 ├── images/                 Image assets (photos + generated og-image + PWA icons)
@@ -70,6 +73,7 @@ Two things to remember when adding markup:
 ```bash
 python3 -m http.server 8099              # then open http://127.0.0.1:8099/ and /en/
 node tools/check-seo.mjs                 # structural/SEO gate, exits non-zero on drift
+node test/pricing.test.mjs && node test/notify.test.mjs   # price model + email rendering
 node --input-type=module --check < js/app.js   # syntax check any module
 
 # Firestore rules suite (port 8081: 8080 is taken on this host — firebase.json "emulators")

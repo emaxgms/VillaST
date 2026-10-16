@@ -7,7 +7,9 @@
  *     1. push  : every `pending` reservation whose pushState != 'sent'
  *                -> FCM HTTP v1 to every pushTokens token, then mark sent
  *     2. mail  : every `confirmed` reservation whose mailState != 'sent'
- *                -> MailApp email to the guest in the form's language
+ *                -> MailApp confirmation email to the guest in the form's language
+ *   2b. mail  : every `rejected` reservation whose rejectMailState == 'new'
+ *                -> MailApp rejection email to the guest, then mark sent
  *     3. tests : every pushTests doc with sent != true
  *                -> test push, then mark sent
  *
@@ -57,6 +59,7 @@ function tick() {
 
   try { pushNewRequests_(token); } catch (err) { console.error('push failed: ' + err); }
   try { mailConfirmed_(token); } catch (err) { console.error('mail failed: ' + err); }
+  try { mailRejected_(token); } catch (err) { console.error('rejection mail failed: ' + err); }
   try { sendTestPushes_(token); } catch (err) { console.error('test push failed: ' + err); }
 }
 
@@ -79,6 +82,7 @@ function checkSetup() {
     console.log('pushTokens: ' + fsQuery_(token, 'pushTokens').length);
     console.log('pending(not sent): ' + fsQuery_(token, 'reservations', 'status', 'pending').filter((r) => r.data.pushState !== 'sent').length);
     console.log('confirmed(not mailed): ' + fsQuery_(token, 'reservations', 'status', 'confirmed').filter((r) => r.data.mailState !== 'sent').length);
+    console.log('rejected(to mail): ' + fsQuery_(token, 'reservations', 'status', 'rejected').filter((r) => r.data.rejectMailState === 'new').length);
     console.log('mail quota left today: ' + MailApp.getRemainingDailyQuota());
   } catch (err) {
     console.error('checkSetup failed: ' + err);
@@ -241,6 +245,16 @@ function pushNewRequests_(token) {
   console.log('pushed ' + pending.length + ' request(s) to ' + tokens.length + ' device(s)');
 }
 
+/* ── email building blocks (shared by the confirmation and rejection mails) ── */
+
+/** One label/value table row. ponytail: tables + inline styles only — mail clients drop <style>. */
+function mailRow_(label, value) {
+  return '<tr>' +
+    '<td style="padding:6px 0;font:13px/1.5 Arial,Helvetica,sans-serif;color:#6E6A5E;width:36%;vertical-align:top;">' + label + '</td>' +
+    '<td style="padding:6px 0;font:14px/1.5 Arial,Helvetica,sans-serif;color:#1A3C5E;font-weight:bold;">' + value + '</td>' +
+    '</tr>';
+}
+
 /* ── flow 2: confirmed -> guest email ───────────────────────────────────── */
 
 function mailConfirmed_(token) {
@@ -286,11 +300,7 @@ function mailHtml_(en, d) {
   const body = 'font:15px/1.65 Arial,Helvetica,sans-serif;color:#333333;';
   const serif = "font-family:Georgia,'Times New Roman',serif;";
 
-  const row = (label, value) =>
-    '<tr>' +
-    '<td style="padding:6px 0;font:13px/1.5 Arial,Helvetica,sans-serif;color:#6E6A5E;width:36%;vertical-align:top;">' + label + '</td>' +
-    '<td style="padding:6px 0;font:14px/1.5 Arial,Helvetica,sans-serif;color:#1A3C5E;font-weight:bold;">' + value + '</td>' +
-    '</tr>';
+  const row = mailRow_; // shared with the rejection email
 
   return `<!doctype html>
 <html lang="${en ? 'en' : 'it'}">
@@ -312,6 +322,7 @@ function mailHtml_(en, d) {
             ${row(T('Check-in', 'Check-in'), VILLA_.checkIn[en ? 'en' : 'it'])}
             ${row(T('Check-out', 'Check-out'), VILLA_.checkOut[en ? 'en' : 'it'])}
             ${row(T('Indirizzo', 'Address'), `${VILLA_.address}<br><a href="${VILLA_.mapsUrl}" style="color:#2E86AB;text-decoration:none;">${T('Apri in Google Maps', 'Open in Google Maps')} →</a>`)}
+            ${d.quoteTotal ? row(T('Totale indicativo', 'Indicative total'), `€${d.quoteTotal}`) : ''}
           </table>
         </td></tr>
       </table>
@@ -328,6 +339,83 @@ function mailHtml_(en, d) {
         Email: <a href="mailto:${VILLA_.email}" style="color:#2E86AB;text-decoration:none;">${VILLA_.email}</a>
       </p>
       <p style="margin:18px 0 0;${body}">${T('Rispondi a questa email per qualsiasi cosa — a presto in Sardegna!', 'Reply to this email for anything you need — see you in Sardinia!')}</p>
+    </div>
+    <div style="background:#FAF7F2;border-top:1px solid #E8D5B7;padding:14px 26px;font:12px/1.7 Arial,Helvetica,sans-serif;color:#8A8578;">
+      Rifugio Tavolara · ${VILLA_.address} · CIN ${VILLA_.cin}
+    </div>
+  </div>
+</body>
+</html>`;
+}
+
+/* ── flow 2b: rejected -> guest email (one per decline) ─────────────────── */
+
+/**
+ * Decline email. Armed by `rejectMailState:'new'`, written by the admin panel
+ * in the same batch as `status:'rejected'` — so reservations rejected before
+ * this field existed (no `rejectMailState`) are never mailed retroactively.
+ */
+function mailRejected_(token) {
+  const toMail = fsQuery_(token, 'reservations', 'status', 'rejected')
+    .filter((r) => r.data.rejectMailState === 'new' && r.data.source !== 'admin' && r.data.email);
+  if (!toMail.length) return;
+
+  if (MailApp.getRemainingDailyQuota() < toMail.length) {
+    console.error('not enough mail quota left today');
+    return;
+  }
+
+  toMail.forEach((r) => {
+    const en = r.data.lang === 'en';
+    MailApp.sendEmail({
+      to: r.data.email,
+      name: 'Rifugio Tavolara',
+      subject: rejectMailSubject_(en, r.data),
+      htmlBody: rejectMailHtml_(en, r.data)
+    });
+    fsPatch_(token, 'reservations/' + r.id, { rejectMailState: fsVal_('sent'), rejectMailSentAt: fsVal_(new Date()) });
+  });
+  console.log('sent ' + toMail.length + ' rejection email(s)');
+}
+
+function rejectMailSubject_(en, d) {
+  const first = String(d.name || '').trim().split(/\s+/)[0];
+  const when = `${date_(d.checkIn)} → ${date_(d.checkOut)}`;
+  return en
+    ? `${first ? `Hi ${first}, your` : 'Your'} dates at Rifugio Tavolara are not available — ${when}`
+    : `${first ? `Ciao ${first}, le` : 'Le'} tue date al Rifugio Tavolara non sono disponibili — ${when}`;
+}
+
+/** Rejection email — same skeleton as the confirmation, no payment block. */
+function rejectMailHtml_(en, d) {
+  const first = String(d.name || '').trim().split(/\s+/)[0];
+  const T = (it, eng) => (en ? eng : it);
+  const when = `${date_(d.checkIn)} → ${date_(d.checkOut)}`;
+  const body = 'font:15px/1.65 Arial,Helvetica,sans-serif;color:#333333;';
+  const serif = "font-family:Georgia,'Times New Roman',serif;";
+
+  return `<!doctype html>
+<html lang="${en ? 'en' : 'it'}">
+<body style="margin:0;padding:24px 12px;background:#FAF7F2;">
+  <div style="display:none;max-height:0;overflow:hidden;">${T('Date non disponibili', 'Dates not available')}: ${when} — Rifugio Tavolara</div>
+  <div style="max-width:560px;margin:0 auto;background:#FFFFFF;border:1px solid #E8D5B7;border-radius:14px;overflow:hidden;">
+    <div style="background:#1A3C5E;padding:22px 26px;">
+      <div style="${serif}font-size:22px;font-weight:600;color:#F3E7D3;">Rifugio Tavolara</div>
+      <div style="font:12px/1.8 Arial,Helvetica,sans-serif;letter-spacing:2px;color:#C9D4E0;">SAN TEODORO · SARDEGNA</div>
+    </div>
+    <div style="padding:26px;">
+      <div style="font:600 12px/1 Arial,Helvetica,sans-serif;letter-spacing:2px;text-transform:uppercase;color:#B0553A;">${T('Richiesta non disponibile', 'Request not available')}</div>
+      <h1 style="${serif}margin:10px 0 16px;font-size:24px;line-height:1.3;color:#1A3C5E;">${T('Purtroppo le date non sono disponibili', 'Unfortunately those dates are not available')}</h1>
+      <p style="margin:0 0 18px;${body}">${T('Ciao', 'Hi')}${first ? ' ' + first : ''}, ${T('grazie per averci scritto. Al momento non possiamo confermare un soggiorno per il periodo richiesto.', 'thanks for reaching out. We cannot confirm a stay for the requested period at the moment.')}</p>
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#FAF7F2;border:1px solid #E8D5B7;border-radius:10px;">
+        <tr><td style="padding:14px 18px;">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+            ${mailRow_(T('Date richieste', 'Requested dates'), when)}
+            ${mailRow_(T('Contatti', 'Contact'), `<a href="tel:${VILLA_.phone.replace(/\s/g, '')}" style="color:#2E86AB;text-decoration:none;">${VILLA_.phone}</a> · <a href="mailto:${VILLA_.email}" style="color:#2E86AB;text-decoration:none;">${VILLA_.email}</a>`)}
+          </table>
+        </td></tr>
+      </table>
+      <p style="margin:18px 0 0;${body}">${T('Hai date alternative? Rispondi a questa email o scrivici su WhatsApp: troviamo insieme il periodo giusto per te.', 'Do you have alternative dates? Reply to this email or message us on WhatsApp: we will find the right period for you.')}</p>
     </div>
     <div style="background:#FAF7F2;border-top:1px solid #E8D5B7;padding:14px 26px;font:12px/1.7 Arial,Helvetica,sans-serif;color:#8A8578;">
       Rifugio Tavolara · ${VILLA_.address} · CIN ${VILLA_.cin}

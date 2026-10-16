@@ -712,25 +712,25 @@
       </div>
 
       <div class="pricing-grid">
-        <div class="pricing-card" data-aos="fade-up" data-aos-delay="0">
+        <div class="pricing-card" data-aos="fade-up" data-aos-delay="0" data-season="low">
           <h3><span class="en">Low Season</span></h3>
           <p class="pricing-season"><span class="en">October &mdash; April</span></p>
-          <div class="pricing-price"><span class="currency">&euro;</span><span class="amount">80</span><span class="period">/notte</span></div>
+          <div class="pricing-price"><span class="currency">&euro;</span><span class="amount">80</span><span class="period">/notte</span><button type="button" class="pricing-note" aria-label="Nota sui prezzi" aria-describedby="pricing-tip-low">*</button><span class="pricing-tip" role="tooltip" id="pricing-tip-low"><span class="en">Prices may vary by season (high, mid or low) and for particular periods (e.g. Ferragosto may cost more).</span></span></div>
           <p class="pricing-min"><span class="en">min. 2 nights</span></p>
         </div>
 
-        <div class="pricing-card pricing-card--highlight" data-aos="fade-up" data-aos-delay="100">
+        <div class="pricing-card pricing-card--highlight" data-aos="fade-up" data-aos-delay="100" data-season="mid">
           <div class="pricing-badge"><span class="en">Most Popular</span></div>
           <h3><span class="en">Mid Season</span></h3>
           <p class="pricing-season"><span class="en">May-June, September</span></p>
-          <div class="pricing-price"><span class="currency">&euro;</span><span class="amount">120</span><span class="period">/notte</span></div>
+          <div class="pricing-price"><span class="currency">&euro;</span><span class="amount">120</span><span class="period">/notte</span><button type="button" class="pricing-note" aria-label="Nota sui prezzi" aria-describedby="pricing-tip-mid">*</button><span class="pricing-tip" role="tooltip" id="pricing-tip-mid"><span class="en">Prices may vary by season (high, mid or low) and for particular periods (e.g. Ferragosto may cost more).</span></span></div>
           <p class="pricing-min"><span class="en">min. 3 nights</span></p>
         </div>
 
-        <div class="pricing-card" data-aos="fade-up" data-aos-delay="200">
+        <div class="pricing-card" data-aos="fade-up" data-aos-delay="200" data-season="high">
           <h3><span class="en">High Season</span></h3>
           <p class="pricing-season"><span class="en">July &mdash; August</span></p>
-          <div class="pricing-price"><span class="currency">&euro;</span><span class="amount">180</span><span class="period">/notte</span></div>
+          <div class="pricing-price"><span class="currency">&euro;</span><span class="amount">180</span><span class="period">/notte</span><button type="button" class="pricing-note" aria-label="Nota sui prezzi" aria-describedby="pricing-tip-high">*</button><span class="pricing-tip" role="tooltip" id="pricing-tip-high"><span class="en">Prices may vary by season (high, mid or low) and for particular periods (e.g. Ferragosto may cost more).</span></span></div>
           <p class="pricing-min"><span class="en">min. 5 nights</span></p>
         </div>
       </div>
@@ -1065,6 +1065,7 @@
             </div>
             <input id="checkout-date" type="hidden">
           </div>
+          <p id="price-estimate" class="price-estimate" hidden></p>
           <div id="availability-loading" style="display:none">
             <span class="spinner"></span>
             
