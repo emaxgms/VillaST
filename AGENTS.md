@@ -88,11 +88,11 @@ calendar, sticky bar, both language pages) and the console.
   privileged service account and holds no invariants.
 - Admin access = a document at `admins/{uid}` (checked by `firestore.rules`); the panel shows the uid
   under Impostazioni so it can be created once from the Firebase console.
-- **Discovery and decision material never enters this repo.** The repo holds shipped artifacts and
-  durable user-facing docs (`README.md`, `DEV_NOTES.md`, `docs/vision.md`, design docs for shipped
-  work). Option comparisons, cost/risk research, business plans and "what should we do" documents
-  live outside it, under `~/.hermes/plans/` (private), delivered via chat/Telegram; once a decision
-  lands, only the outcome is committed here.
+- **Decisions live in `docs/plans/`, never in loose files.** Working plans and their evidence:
+  `docs/plans/active/<date-slug>/`, moved whole to `docs/plans/completed/` when merged. Option
+  comparisons, cost/risk research and "what should we do" documents follow the same rule: they are
+  committed under `docs/plans/`, never left at the repo root and never kept outside the repo.
+  Nothing under `docs/` is deployed (see `firebase.json` `hosting.ignore`).
 - **Every user-facing string exists twice** (`<span class="it">` + `<span class="en">`); the active
   language is driven by `body.lang-en`, which `reservations.js`/`calendar.js` read at runtime.
   `data-alt-en` / `data-placeholder-en` are the English twins the generator swaps.
@@ -117,3 +117,9 @@ calendar, sticky bar, both language pages) and the console.
   behind the homepage cards, the sticky bar and the booking-form quote. The static HTML keeps
   fallback values for no-JS; per-night precedence is override > season > base; the form stores
   `quoteTotal` on the request and the confirmation email quotes it when present.
+
+## Planning workflow
+
+Work items live in `docs/plans/active/<YYYY-MM-DD-slug>/` — `plan.md`,
+`progress.md`, `review.md` — and move whole to `docs/plans/completed/` when
+done. Skill: `project-workflow`. Verify before claiming done: `node tools/check-seo.mjs && node test/pricing.test.mjs && node test/notify.test.mjs`.
