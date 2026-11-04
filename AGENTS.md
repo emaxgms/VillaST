@@ -122,4 +122,4 @@ calendar, sticky bar, both language pages) and the console.
 
 Work items live in `docs/plans/active/<YYYY-MM-DD-slug>/` — `plan.md`,
 `progress.md`, `review.md` — and move whole to `docs/plans/completed/` when
-done. Skill: `project-workflow`. Verify before claiming done: `node tools/check-seo.mjs && node test/pricing.test.mjs && node test/notify.test.mjs`.
+done. Skill: `manu`. Verify before claiming done: `node tools/check-seo.mjs && node test/pricing.test.mjs && node test/notify.test.mjs`.
